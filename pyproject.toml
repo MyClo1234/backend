@@ -1,0 +1,16 @@
+[project]
+name = "ai-stylist-agent"
+version = "0.1.0"
+description = "AI Stylist Agent - 옷 이미지 특징 추출 앱 - Flask API 서버"
+requires-python = ">=3.11"
+dependencies = [
+    "Flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "google-generativeai>=0.3.0",
+    "Pillow>=10.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.uv]
+# 이 프로젝트는 단일 스크립트 파일이므로 패키지로 빌드하지 않음
+dev-dependencies = []
