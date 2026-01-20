@@ -1,22 +1,36 @@
-from flask import Flask
-from flask_cors import CORS
-from app.core.config import Config
-from app.routers.health_routes import health_bp
-from app.routers.image_routes import image_bp
-from app.routers.extraction_routes import extraction_bp
-from app.routers.wardrobe_routes import wardrobe_bp
-from app.routers.recommendation_routes import recommendation_bp
+import os
+import uvicorn
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
-def create_app():
-    app = Flask(__name__)
-    CORS(app)
+from app.core.config import Config
+from app.routers.health_routes import health_router
+from app.routers.extraction_routes import extraction_router
+from app.routers.wardrobe_routes import wardrobe_router
+from app.routers.recommendation_routes import recommendation_router
+
+def create_app() -> FastAPI:
+    app = FastAPI(title="Clothing Attribute Extractor", version="1.0.0")
     
-    # Register Blueprints
-    app.register_blueprint(health_bp, url_prefix='/api')
-    app.register_blueprint(image_bp, url_prefix='/api')
-    app.register_blueprint(extraction_bp, url_prefix='/api')
-    app.register_blueprint(wardrobe_bp, url_prefix='/api')
-    app.register_blueprint(recommendation_bp, url_prefix='/api')
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # Mount static files for images
+    os.makedirs(Config.OUTPUT_DIR, exist_ok=True)
+    app.mount("/api/images", StaticFiles(directory=Config.OUTPUT_DIR), name="images")
+    
+    # Include routers
+    app.include_router(health_router, prefix="/api", tags=["Health"])
+    app.include_router(extraction_router, prefix="/api", tags=["Extraction"])
+    app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
+    app.include_router(recommendation_router, prefix="/api", tags=["Recommendation"])
     
     return app
 
@@ -25,4 +39,4 @@ app = create_app()
 if __name__ == '__main__':
     # Ensure config can only warn if generated
     Config.check_api_key()
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,14 +1,14 @@
-from flask import Blueprint, request, jsonify
+from typing import Optional
+from fastapi import APIRouter, Query, HTTPException
 from app.services.wardrobe_manager import wardrobe_manager
+from app.models.schemas import WardrobeResponse
 
-wardrobe_bp = Blueprint('wardrobe', __name__)
+wardrobe_router = APIRouter()
 
-@wardrobe_bp.route('/wardrobe/items', methods=['GET'])
-def get_wardrobe_items():
+@wardrobe_router.get("/wardrobe/items", response_model=WardrobeResponse)
+def get_wardrobe_items(category: Optional[str] = Query(None)):
     """Get all wardrobe items"""
     try:
-        category = request.args.get('category', None)
-        
         items = wardrobe_manager.load_items()
         
         if category:
@@ -19,10 +19,10 @@ def get_wardrobe_items():
                     filtered.append(item)
             items = filtered
         
-        return jsonify({
+        return {
             "success": True,
             "items": items,
             "count": len(items)
-        })
+        }
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))

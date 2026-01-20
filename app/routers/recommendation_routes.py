@@ -1,47 +1,45 @@
-from flask import Blueprint, request, jsonify
+from typing import Optional
+from fastapi import APIRouter, Query, HTTPException
 from app.services.wardrobe_manager import wardrobe_manager
 from app.services.recommender import recommender
+from app.models.schemas import OutfitScoreResponse, RecommendationResponse
 
-recommendation_bp = Blueprint('recommendation', __name__)
+recommendation_router = APIRouter()
 
-@recommendation_bp.route('/outfit/score', methods=['GET'])
-def get_outfit_score():
+@recommendation_router.get("/outfit/score", response_model=OutfitScoreResponse)
+def get_outfit_score(top_id: str = Query(...), bottom_id: str = Query(...)):
     try:
-        top_id = request.args.get('top_id')
-        bottom_id = request.args.get('bottom_id')
-        
-        if not top_id or not bottom_id:
-            return jsonify({"error": "top_id and bottom_id are required"}), 400
-        
         all_items = wardrobe_manager.load_items()
         
         top_item = next((item for item in all_items if item.get("id") == top_id), None)
         bottom_item = next((item for item in all_items if item.get("id") == bottom_id), None)
         
         if not top_item or not bottom_item:
-            return jsonify({"error": "Items not found"}), 404
+            raise HTTPException(status_code=404, detail="Items not found")
         
         score, reasons = recommender.calculate_outfit_score(top_item, bottom_item)
         
-        return jsonify({
+        return {
             "success": True,
             "score": round(score, 3),
             "score_percent": round(score * 100),
             "reasons": reasons,
             "top": top_item,
             "bottom": bottom_item
-        })
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-@recommendation_bp.route('/recommend/outfit', methods=['GET'])
-def recommend_outfit():
+@recommendation_router.get("/recommend/outfit", response_model=RecommendationResponse)
+def recommend_outfit(
+    count: int = Query(1, ge=1),
+    season: Optional[str] = Query(None),
+    formality: Optional[float] = Query(None),
+    use_gemini: bool = Query(True)
+):
     try:
-        count = int(request.args.get('count', 1))
-        season = request.args.get('season', None)
-        formality = request.args.get('formality', None)
-        use_gemini = request.args.get('use_gemini', 'true').lower() == 'true'
-        
         all_items = wardrobe_manager.load_items()
         
         tops = [item for item in all_items 
@@ -50,11 +48,13 @@ def recommend_outfit():
                    if item.get("attributes", {}).get("category", {}).get("main") == "bottom"]
         
         if not tops or not bottoms:
-            return jsonify({
+            return {
                 "success": True,
                 "outfits": [],
+                "count": 0,
+                "method": "none",
                 "message": "Not enough items in wardrobe (need at least one top and one bottom)"
-            })
+            }
         
         if season:
             tops = [t for t in tops 
@@ -63,28 +63,31 @@ def recommend_outfit():
                        if season.lower() in b.get("attributes", {}).get("scores", {}).get("season", [])]
         
         if formality:
-            target_formality = float(formality)
             tops = [t for t in tops 
-                   if abs(t.get("attributes", {}).get("scores", {}).get("formality", 0.5) - target_formality) <= 0.3]
+                   if abs(t.get("attributes", {}).get("scores", {}).get("formality", 0.5) - formality) <= 0.3]
             bottoms = [b for b in bottoms 
-                       if abs(b.get("attributes", {}).get("scores", {}).get("formality", 0.5) - target_formality) <= 0.3]
+                       if abs(b.get("attributes", {}).get("scores", {}).get("formality", 0.5) - formality) <= 0.3]
         
         if not tops or not bottoms:
-            return jsonify({
+            return {
                 "success": True,
                 "outfits": [],
+                "count": 0,
+                "method": "none",
                 "message": "No items match the filters"
-            })
+            }
         
+        # Use Gemini for recommendation (with optimization)
+        # Note: Making this synchronous for now within async framework, could be made async later
         if use_gemini:
             recommendations = recommender.recommend_with_gemini(tops, bottoms, count, top_candidates=5)
             if recommendations:
-                return jsonify({
+                return {
                     "success": True,
                     "outfits": recommendations,
                     "count": len(recommendations),
                     "method": "gemini-optimized"
-                })
+                }
         
         # Fallback
         combinations = []
@@ -103,12 +106,12 @@ def recommend_outfit():
         combinations.sort(key=lambda x: x["score"], reverse=True)
         top_combinations = combinations[:count]
         
-        return jsonify({
+        return {
             "success": True,
             "outfits": top_combinations,
             "count": len(top_combinations),
             "method": "rule-based"
-        })
+        }
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))

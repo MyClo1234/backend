@@ -15,6 +15,4 @@ env/
 # Application Data
 extracted_attributes/
 
-# Verification Scripts (Optional, in case recreated)
-verify_imports.py
-verify_endpoints.py
+
