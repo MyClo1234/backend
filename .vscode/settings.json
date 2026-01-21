@@ -1,37 +1,7 @@
 {
     "editor.formatOnSave": true,
-    "workbench.editor.customLabels.enabled": true,
-    "workbench.editor.customLabels.patterns": {
-        "**/*.entra": "${filename}"
-    },
-    "chat.instructionsFilesLocations": {
-        ".github/instructions": true,
-        "C:\\Users\\UserK\\AppData\\Local\\Temp\\postman-collections-post-response.instructions.md": true,
-        "C:\\Users\\UserK\\AppData\\Local\\Temp\\postman-collections-pre-request.instructions.md": true,
-        "C:\\Users\\UserK\\AppData\\Local\\Temp\\postman-folder-post-response.instructions.md": true,
-        "C:\\Users\\UserK\\AppData\\Local\\Temp\\postman-folder-pre-request.instructions.md": true,
-        "C:\\Users\\UserK\\AppData\\Local\\Temp\\postman-http-request-post-response.instructions.md": true,
-        "C:\\Users\\UserK\\AppData\\Local\\Temp\\postman-http-request-pre-request.instructions.md": true
-    },
-    "workbench.editor.enablePreview": false,
-    "editor.inlineSuggest.enabled": false,
-    "workbench.editorAssociations": {
-        "*.task": "default"
-    },
-    "git.enableSmartCommit": true,
-    "git.confirmSync": false,
-    "explorer.fileNesting.patterns": {
-        "*.ts": "${capture}.js",
-        "*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
-        "*.jsx": "${capture}.js",
-        "*.tsx": "${capture}.ts",
-        "tsconfig.json": "tsconfig.*.json",
-        "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb, bun.lock",
-        "*.sqlite": "${capture}.${extname}-*",
-        "*.db": "${capture}.${extname}-*",
-        "*.sqlite3": "${capture}.${extname}-*",
-        "*.db3": "${capture}.${extname}-*",
-        "*.sdb": "${capture}.${extname}-*",
-        "*.s3db": "${capture}.${extname}-*"
+    "editor.tabSize": 4,
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
     }
 }
