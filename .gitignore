@@ -9,7 +9,6 @@ env/
 .env
 
 # IDE
-.vscode/
 .idea/
 
 # Application Data
