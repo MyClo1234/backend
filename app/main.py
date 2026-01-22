@@ -1,4 +1,5 @@
 import os
+import logging
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +10,12 @@ from app.routers.health_routes import health_router
 from app.routers.extraction_routes import extraction_router
 from app.routers.wardrobe_routes import wardrobe_router
 from app.routers.recommendation_routes import recommendation_router
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Clothing Attribute Extractor", version="1.0.0")
