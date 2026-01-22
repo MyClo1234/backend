@@ -219,6 +219,8 @@ AZURE_OPENAI_MODEL_NAME=gpt-4o
 
 ### 서버 실행
 
+#### 방법 1: FastAPI 서버 실행
+
 **표준 Python 사용:**
 ```bash
 python -m app.main
@@ -246,6 +248,98 @@ uv run python -m app.main
 - **API 서버**: http://localhost:8000
 - **API 문서**: http://localhost:8000/docs (Swagger UI)
 - **대체 문서**: http://localhost:8000/redoc (ReDoc)
+
+#### 방법 2: Azure Functions 실행
+
+이 프로젝트는 Azure Functions 기반으로도 실행할 수 있습니다.
+
+**1. 필수 도구 설치**
+
+Azure Functions Core Tools를 설치해야 합니다:
+
+**Windows:**
+```powershell
+winget install Microsoft.Azure.FunctionsCoreTools
+# 또는 npm 사용 시:
+npm i -g azure-functions-core-tools@4 --unsafe-perm true
+```
+
+**macOS:**
+```bash
+brew tap azure/functions
+brew install azure-functions-core-tools@4
+```
+
+**Linux:**
+```bash
+# Ubuntu/Debian
+wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
+sudo dpkg -i packages-microsoft-prod.deb
+sudo apt-get update
+sudo apt-get install azure-functions-core-tools-4
+```
+
+**2. uv를 사용한 실행 (권장)**
+
+**Windows (PowerShell):**
+```powershell
+# uv로 의존성 설치 (가상 환경 자동 생성)
+uv sync
+
+# 가상 환경 활성화
+.venv\Scripts\Activate
+
+# Azure Functions 실행
+func start
+```
+
+**macOS/Linux:**
+```bash
+# uv로 의존성 설치 (가상 환경 자동 생성)
+uv sync
+
+# 가상 환경 활성화
+source .venv/bin/activate
+
+# Azure Functions 실행
+func start
+```
+
+**또는 uv run을 사용하여 한 번에 실행:**
+```bash
+# uv run을 사용하여 가상 환경 내에서 func 실행
+uv run func start
+```
+
+**3. 기존 방식 (venv + pip)**
+
+**Windows (PowerShell):**
+```powershell
+# 가상 환경 생성 및 활성화
+python -m venv .venv
+.venv\Scripts\Activate
+
+# 의존성 설치
+pip install -r requirements.txt
+
+# 함수 실행
+func start
+```
+
+**macOS/Linux:**
+```bash
+# 가상 환경 활성화
+source .venv/bin/activate
+
+# 함수 실행
+func start
+```
+
+**서버 주소:**
+- **API 서버**: http://localhost:7071
+- **API 문서**: http://localhost:7071/docs
+
+> **참고**: Azure Functions 실행 시 `local.settings.json` 파일의 환경 변수가 자동으로 로드됩니다.
 
 ## 환경 변수 설정
 
