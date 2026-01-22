@@ -67,6 +67,8 @@ git checkout -b feat/#이슈번호-설명
 
 ### 1. 이미지 속성 추출 (`/api/extract`)
 - 옷 이미지를 업로드하여 자동으로 속성 추출
+- **Azure Blob Storage**에 이미지 자동 저장 (설정된 경우)
+- 저장 경로: `users/{user_id}/{yyyyMMdd}/{uuid}.{ext}`
 - 추출되는 속성:
   - 카테고리 (상의/하의, 세부 카테고리)
   - 색상 (주색상, 보조색상, 톤)
@@ -98,6 +100,7 @@ git checkout -b feat/#이슈번호-설명
 - **AI 모델**: Azure OpenAI (GPT-4o)
 - **워크플로우**: LangGraph
 - **이미지 처리**: Pillow (PIL)
+- **스토리지**: Azure Blob Storage (선택사항)
 - **데이터 검증**: Pydantic 2.0+
 - **환경 변수 관리**: python-dotenv
 - **CORS**: FastAPI CORS Middleware
@@ -134,7 +137,8 @@ backend/
 │   ├── services/               # 비즈니스 로직
 │   │   ├── extractor.py        # 속성 추출 서비스 (LangGraph 래퍼)
 │   │   ├── recommender.py      # 코디 추천 서비스 (LangGraph 래퍼)
-│   │   └── wardrobe_manager.py # 옷장 관리 서비스
+│   │   ├── wardrobe_manager.py  # 옷장 관리 서비스
+│   │   └── blob_storage.py     # Azure Blob Storage 서비스
 │   ├── utils/                  # 유틸리티 함수
 │   │   ├── helpers.py          # 헬퍼 함수
 │   │   ├── json_parser.py      # JSON 파싱 유틸리티
@@ -203,11 +207,16 @@ backend/
 `.env` 파일을 프로젝트 루트에 생성하고 다음 내용을 추가하세요:
 
 ```env
+# Azure OpenAI 설정
 AZURE_OPENAI_API_KEY=your_azure_openai_api_key_here
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_VERSION=2024-02-15-preview
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
 AZURE_OPENAI_MODEL_NAME=gpt-4o
+
+# Azure Blob Storage 설정 (선택사항)
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=your_account_name;AccountKey=your_account_key;EndpointSuffix=core.windows.net
+AZURE_STORAGE_CONTAINER_NAME=images
 ```
 
 > **참고**: `.env` 파일은 `.gitignore`에 포함되어 있어 Git에 커밋되지 않습니다. `.env.example` 파일을 참고하세요.
@@ -216,6 +225,13 @@ AZURE_OPENAI_MODEL_NAME=gpt-4o
 1. Azure Portal에서 Azure OpenAI 리소스 생성
 2. API 키와 엔드포인트 URL 확인
 3. GPT-4o 모델 배포 (Deployment)
+
+**Azure Blob Storage 설정 방법 (선택사항):**
+1. Azure Portal에서 Storage Account 생성
+2. Access Keys에서 Connection String 복사
+3. Container 생성 (기본값: `images`)
+4. Connection String을 `.env` 파일에 설정
+   - 설정하지 않으면 로컬 파일 시스템에 저장됩니다
 
 ### 서버 실행
 
@@ -260,9 +276,17 @@ uv run python -m app.main
 
 환경 변수를 설정하지 않으면 `app/core/config.py`의 기본값이 사용됩니다.
 
+**Azure OpenAI 설정:**
 - `AZURE_OPENAI_API_VERSION`: API 버전 (기본값: `2024-02-15-preview`)
 - `AZURE_OPENAI_DEPLOYMENT_NAME`: 배포 이름 (기본값: `gpt-4o`)
 - `AZURE_OPENAI_MODEL_NAME`: 모델 이름 (기본값: `gpt-4o`)
+
+**Azure Blob Storage 설정 (선택사항):**
+- `AZURE_STORAGE_CONNECTION_STRING`: Azure Storage 연결 문자열
+  - 설정하지 않으면 로컬 파일 시스템에 저장됩니다
+- `AZURE_STORAGE_CONTAINER_NAME`: Blob 컨테이너 이름 (기본값: `images`)
+
+**기타 설정:**
 - `MAX_FILE_SIZE`: 최대 파일 크기 (기본값: 10MB)
 - `OUTPUT_DIR`: 추출된 이미지 저장 디렉토리 (기본값: `extracted_attributes`)
 
@@ -289,12 +313,14 @@ Content-Type: multipart/form-data
 ```
 
 **요청:**
-- `image`: 이미지 파일 (multipart/form-data)
+- `image`: 이미지 파일 (multipart/form-data) - **필수**
+- `user_id`: 사용자 UUID (예: `550e8400-e29b-41d4-a716-446655440000`) - **필수**
 
 **curl 예시:**
 ```bash
 curl -X POST "http://localhost:8000/api/extract" \
-  -F "image=@/path/to/your/clothing_image.jpg"
+  -F "image=@/path/to/your/clothing_image.jpg" \
+  -F "user_id=550e8400-e29b-41d4-a716-446655440000"
 ```
 
 **Python 예시:**
@@ -304,7 +330,8 @@ import requests
 url = "http://localhost:8000/api/extract"
 with open("shirt.jpg", "rb") as f:
     files = {"image": f}
-    response = requests.post(url, files=files)
+    data = {"user_id": "550e8400-e29b-41d4-a716-446655440000"}
+    response = requests.post(url, files=files, data=data)
     print(response.json())
 ```
 
@@ -330,11 +357,22 @@ with open("shirt.jpg", "rb") as f:
     },
     ...
   },
-  "saved_to": "extracted_attributes/...",
-  "image_url": "/api/images/...",
-  "item_id": "uuid-here"
+  "saved_to": "extracted_attributes/048ed381-450b-4f9c-9cf7-9d2f4674938e.json",
+  "image_url": "https://yourstorage.blob.core.windows.net/images/users/550e8400-e29b-41d4-a716-446655440000/20241223/048ed381-450b-4f9c-9cf7-9d2f4674938e.jpg",
+  "item_id": "048ed381-450b-4f9c-9cf7-9d2f4674938e",
+  "blob_name": "users/550e8400-e29b-41d4-a716-446655440000/20241223/048ed381-450b-4f9c-9cf7-9d2f4674938e.jpg",
+  "storage_type": "blob_storage"
 }
 ```
+
+**저장 위치:**
+- **Azure Blob Storage** (설정된 경우):
+  - 경로: `users/{user_id}/{yyyyMMdd}/{uuid}.{ext}`
+  - 예: `users/550e8400-e29b-41d4-a716-446655440000/20241223/048ed381-450b-4f9c-9cf7-9d2f4674938e.jpg`
+  - `blob_url`로 직접 접근 가능
+- **로컬 파일 시스템** (Blob Storage 미설정 시):
+  - 경로: `extracted_attributes/{item_id}.json` (속성 데이터)
+  - `image_url`로 접근 가능
 
 ### 3. 옷장에 아이템 추가
 
@@ -565,8 +603,35 @@ pip install -r requirements.txt
 
 또는 개별 설치:
 ```bash
-pip install openai langgraph langchain langchain-openai
+pip install openai langgraph langchain langchain-openai azure-storage-blob
 ```
+
+### 5. Azure Blob Storage 연결 오류
+
+**에러:**
+```
+Failed to initialize Blob Storage client
+```
+
+**해결:**
+- `.env` 파일에 `AZURE_STORAGE_CONNECTION_STRING`이 올바르게 설정되었는지 확인
+- Azure Portal에서 Storage Account의 Access Keys 확인
+- Connection String 형식이 올바른지 확인:
+  ```
+  DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
+  ```
+- Blob Storage가 설정되지 않은 경우, 로컬 파일 시스템에 자동으로 저장됩니다
+
+### 6. 이미지 저장 위치 확인
+
+**Azure Blob Storage에 저장된 경우:**
+- API 응답의 `blob_name` 필드에서 경로 확인
+- `blob_url`로 이미지 직접 접근
+- Azure Portal → Storage Account → Containers → `images` 컨테이너에서 확인
+
+**로컬에 저장된 경우:**
+- `extracted_attributes/` 폴더에서 JSON 파일 확인
+- `image_url`로 이미지 접근
 
 ## Swagger UI 사용
 
@@ -664,6 +729,7 @@ python verify_endpoints.py
 - `langgraph>=0.0.1`: LangGraph 워크플로우
 - `langchain>=0.1.0`: LangChain (LangGraph 의존성)
 - `langchain-openai>=0.0.5`: LangChain Azure OpenAI 통합
+- `azure-storage-blob>=12.0.0`: Azure Blob Storage SDK
 - `Pillow>=10.0.0`: 이미지 처리
 - `pydantic>=2.0.0`: 데이터 검증
 - `python-dotenv>=1.0.0`: 환경 변수 관리
@@ -745,4 +811,12 @@ uv pip list
 
 ---
 
-**마지막 업데이트**: 2024년
+**마지막 업데이트**: 2026년 1월
+
+## 변경 이력
+
+### 2026-01-22
+- Azure Blob Storage 지원 추가
+- 이미지 저장 경로 형식: `users/{user_id}/{yyyyMMdd}/{uuid}.{ext}`
+- API 엔드포인트에 `user_id` (UUID) 파라미터 추가
+- 응답에 `blob_name`, `storage_type` 필드 추가

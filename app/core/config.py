@@ -20,6 +20,10 @@ class Config:
     # Paths
     OUTPUT_DIR = "extracted_attributes"
     
+    # Azure Blob Storage Configuration
+    AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+    AZURE_STORAGE_CONTAINER_NAME = os.getenv("AZURE_STORAGE_CONTAINER_NAME", "images")
+    
     @staticmethod
     def check_api_key():
         if not Config.AZURE_OPENAI_API_KEY:
@@ -28,3 +32,6 @@ class Config:
         if not Config.AZURE_OPENAI_ENDPOINT:
             print("Warning: AZURE_OPENAI_ENDPOINT environment variable is not set.")
             print("       Please set AZURE_OPENAI_ENDPOINT in .env file or environment variables.")
+        if not Config.AZURE_STORAGE_CONNECTION_STRING:
+            print("Warning: AZURE_STORAGE_CONNECTION_STRING environment variable is not set.")
+            print("       Please set AZURE_STORAGE_CONNECTION_STRING in .env file or environment variables.")
