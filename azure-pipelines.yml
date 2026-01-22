@@ -1,0 +1,21 @@
+# azure-pipelines.yml
+
+trigger:
+- main
+
+pool:
+  vmImage: codify-self-host-ci-cd
+
+steps:
+# 1. uv 설치 (공식 스크립트 사용) & 경로 설정
+- script: |
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    echo '##vso[task.prependpath]/home/vsts/.cargo/bin'
+  displayName: 'Install uv'
+
+# 2. 의존성 설치
+# uv sync: uv.lock 파일을 기반으로 정확한 버전을 초고속으로 설치합니다.
+# --frozen: CI 환경에서는 lock 파일이 변경되지 않도록 고정하는 옵션입니다.
+- script: |
+    uv sync --frozen
+  displayName: 'Install dependencies with uv'
