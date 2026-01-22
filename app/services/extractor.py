@@ -1,84 +1,31 @@
-import json
-from datetime import datetime
-from PIL import Image
+"""
+이미지 속성 추출 서비스 (LangGraph 워크플로우 래퍼)
+"""
+from typing import Dict, Any
+from app.ai.workflows.extraction_workflow import extract_attributes
 
-from app.core.constants import USER_PROMPT, DEFAULT_OBJ, ENUMS, REQUIRED_TOP_KEYS
-from app.utils.json_parser import parse_json_from_text
-from app.utils.validators import validate_schema
-from app.utils.helpers import normalize, load_image_from_bytes
-from app.services.gemini_client import gemini_client
 
 class AttributeExtractor:
-    def build_retry_prompt(self, errors: list) -> str:
-        return f"""Fix your output to be VALID JSON and match the schema EXACTLY.
-
-Errors:
-- {chr(10).join(errors[:10])}
-
-MUST:
-- Return ONLY ONE JSON object. No extra text.
-- Top-level keys must be EXACTLY: {sorted(list(REQUIRED_TOP_KEYS))}
-- details.closure MUST be an ARRAY of strings (e.g. ["none"]).
-- scores.season MUST be an ARRAY of strings (e.g. ["winter"]).
-- All confidences must be 0.0~1.0.
-- category.main must be one of {ENUMS["category_main"]}.
-- color.tone must be one of {ENUMS["tone"]}.
-- Use "unknown" if unsure.
-
-Return corrected JSON ONLY.
-"""
-
-    def extract(self, image_bytes: bytes, retry_on_schema_fail: bool = True) -> dict:
-        image = load_image_from_bytes(image_bytes)
+    """
+    이미지 속성 추출 서비스
+    
+    내부적으로 LangGraph 워크플로우를 사용하여 이미지에서 의류 속성을 추출합니다.
+    """
+    
+    def extract(self, image_bytes: bytes, retry_on_schema_fail: bool = True) -> Dict[str, Any]:
+        """
+        이미지에서 의류 속성 추출
         
-        # First try
-        try:
-            raw1 = gemini_client.generate_content(USER_PROMPT, image)
-            parsed1, repaired1 = parse_json_from_text(raw1)
-        except Exception as e:
-            # If generation fails completely
-            out = json.loads(json.dumps(DEFAULT_OBJ))
-            out["meta"]["notes"] = f"GEMINI_ERROR: {str(e)}"
-            return out
+        Args:
+            image_bytes: 이미지 바이트 데이터
+            retry_on_schema_fail: 스키마 검증 실패 시 재시도 여부 (현재는 항상 True)
+        
+        Returns:
+            추출된 속성 딕셔너리
+        """
+        # LangGraph 워크플로우 호출
+        return extract_attributes(image_bytes, retry_on_schema_fail=retry_on_schema_fail)
 
-        if parsed1 is None:
-            out = json.loads(json.dumps(DEFAULT_OBJ))
-            out["meta"]["notes"] = f"JSON_PARSE_FAILED. repaired_head={repaired1[:160]}"
-            out["confidence"] = 0.1
-            return out
 
-        ok1, errs1 = validate_schema(parsed1)
-        if ok1:
-            return normalize(parsed1)
-
-        # Retry
-        if retry_on_schema_fail:
-            prompt2 = self.build_retry_prompt(errs1)
-            try:
-                raw2 = gemini_client.generate_content(prompt2, image)
-                parsed2, repaired2 = parse_json_from_text(raw2)
-
-                if parsed2 is None:
-                    out = json.loads(json.dumps(DEFAULT_OBJ))
-                    out["meta"]["notes"] = f"RETRY_JSON_PARSE_FAILED. repaired_head={repaired2[:160]}"
-                    out["confidence"] = 0.1
-                    return out
-
-                ok2, errs2 = validate_schema(parsed2)
-                if ok2:
-                    return normalize(parsed2)
-
-                out = normalize(parsed2)
-                out["meta"]["notes"] = (out["meta"]["notes"] or "")
-                out["meta"]["notes"] = (out["meta"]["notes"] + f" | SCHEMA_INVALID_AFTER_RETRY: {errs2[:3]}")[:300]
-                return out
-            except Exception:
-                pass
-
-        # no retry or retry failed
-        out = normalize(parsed1)
-        out["meta"]["notes"] = (out["meta"]["notes"] or "")
-        out["meta"]["notes"] = (out["meta"]["notes"] + f" | SCHEMA_INVALID_NO_RETRY: {errs1[:3]}")[:300]
-        return out
-
+# 싱글톤 인스턴스 (하위 호환성 유지)
 extractor = AttributeExtractor()

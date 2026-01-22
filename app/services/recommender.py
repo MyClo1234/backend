@@ -1,7 +1,6 @@
 import json
 from typing import List, Dict, Any, Tuple, Optional
-from app.services.gemini_client import gemini_client
-from app.utils.json_parser import parse_json_from_text
+from app.ai.workflows.recommendation_workflow import recommend_outfits
 
 class OutfitRecommender:
     def __init__(self):
@@ -115,7 +114,19 @@ class OutfitRecommender:
         bottom_ids = sorted([b.get("id") for b in bottoms])
         return f"{hash(tuple(top_ids))}_{hash(tuple(bottom_ids))}_{count}"
 
-    def recommend_with_gemini(self, tops: List[Dict], bottoms: List[Dict], count: int = 1, top_candidates: int = 5) -> List[Dict]:
+    def recommend_with_llm(self, tops: List[Dict], bottoms: List[Dict], count: int = 1) -> List[Dict]:
+        """
+        LLM을 사용한 코디 추천 (Azure OpenAI + LangGraph)
+        
+        Args:
+            tops: 상의 아이템 리스트
+            bottoms: 하의 아이템 리스트
+            count: 추천 개수
+            
+        Returns:
+            추천 결과 리스트
+        """
+        # 캐시 확인
         cache_key = self._get_cache_key(tops, bottoms, count)
         if cache_key in self.cache:
             cached_result = self.cache[cache_key]
@@ -134,125 +145,82 @@ class OutfitRecommender:
                     })
             if result:
                 return result[:count]
+        
+        # LangGraph 워크플로우 호출
+        try:
+            recommendations = recommend_outfits(
+                tops=tops,
+                bottoms=bottoms,
+                count=count,
+                use_llm=True
+            )
+            
+            # 캐시 저장
+            if recommendations and len(self.cache) < self.cache_max_size:
+                cache_data = []
+                for rec in recommendations:
+                    cache_data.append({
+                        "top_id": rec.get("top", {}).get("id"),
+                        "bottom_id": rec.get("bottom", {}).get("id"),
+                        "score": rec.get("score", 0.5),
+                        "reasoning": rec.get("reasoning", ""),
+                        "style_description": rec.get("style_description", "")
+                    })
+                if cache_data:
+                    self.cache[cache_key] = cache_data
+            
+            return recommendations
+        except Exception as e:
+            print(f"Azure OpenAI recommendation error: {e}")
+            # 폴백: 규칙 기반 추천
+            candidates = []
+            for top in tops:
+                for bottom in bottoms:
+                    score, _ = self.calculate_outfit_score(top, bottom)
+                    candidates.append({"top": top, "bottom": bottom, "score": score})
+            candidates.sort(key=lambda x: x["score"], reverse=True)
+            return self._rule_based_recommendation(tops, bottoms, count)
 
+    def _rule_based_recommendation(self, tops: List[Dict], bottoms: List[Dict], count: int) -> List[Dict]:
+        """
+        규칙 기반 추천 (LLM 실패 시 폴백)
+        
+        Args:
+            tops: 상의 아이템 리스트
+            bottoms: 하의 아이템 리스트
+            count: 추천 개수
+            
+        Returns:
+            추천 결과 리스트
+        """
         candidates = []
         for top in tops:
             for bottom in bottoms:
-                score, _ = self.calculate_outfit_score(top, bottom)
-                candidates.append({"top": top, "bottom": bottom, "score": score})
+                score, reasons = self.calculate_outfit_score(top, bottom)
+                candidates.append({
+                    "top": top,
+                    "bottom": bottom,
+                    "score": round(score, 3),
+                    "reasons": reasons,
+                    "reasoning": ", ".join(reasons),
+                    "style_description": (
+                        f"{top.get('attributes', {}).get('category', {}).get('sub', 'Top')} & "
+                        f"{bottom.get('attributes', {}).get('category', {}).get('sub', 'Bottom')}"
+                    ),
+                })
         
         candidates.sort(key=lambda x: x["score"], reverse=True)
-        top_candidates_list = candidates[:min(top_candidates, len(candidates))]
+        return candidates[:count]
+    
+    def recommend_with_gemini(self, tops: List[Dict], bottoms: List[Dict], count: int = 1, top_candidates: int = 5) -> List[Dict]:
+        """
+        하위 호환성을 위한 래퍼 메서드 (deprecated)
         
-        if not top_candidates_list:
-            return []
+        내부적으로 recommend_with_llm을 호출합니다.
+        top_candidates 파라미터는 무시됩니다.
         
-        tops_summary = []
-        bottoms_summary = []
-        candidate_tops = {}
-        candidate_bottoms = {}
-        
-        for candidate in top_candidates_list:
-            top = candidate["top"]
-            bottom = candidate["bottom"]
-            top_id = top.get("id")
-            bottom_id = bottom.get("id")
-            
-            if top_id not in candidate_tops:
-                attrs = top.get("attributes", {})
-                candidate_tops[top_id] = top
-                tops_summary.append({
-                    "id": top_id,
-                    "cat": attrs.get("category", {}).get("sub", "unknown"),
-                    "col": attrs.get("color", {}).get("primary", "unknown"),
-                    "style": attrs.get("style_tags", [])[:3],
-                    "form": round(attrs.get("scores", {}).get("formality", 0.5), 2)
-                })
-            
-            if bottom_id not in candidate_bottoms:
-                attrs = bottom.get("attributes", {})
-                candidate_bottoms[bottom_id] = bottom
-                bottoms_summary.append({
-                    "id": bottom_id,
-                    "cat": attrs.get("category", {}).get("sub", "unknown"),
-                    "col": attrs.get("color", {}).get("primary", "unknown"),
-                    "style": attrs.get("style_tags", [])[:3],
-                    "form": round(attrs.get("scores", {}).get("formality", 0.5), 2)
-                })
-        
-        prompt = f"""Recommend {count} best outfit(s) from these {len(top_candidates_list)} pre-filtered combinations.
-
-Tops: {json.dumps(tops_summary, ensure_ascii=False)}
-Bottoms: {json.dumps(bottoms_summary, ensure_ascii=False)}
-
-Consider color harmony, style match, formality balance.
-
-Return JSON array with {count} object(s):
-{{
-  "top_id": "string",
-  "bottom_id": "string",
-  "score": 0.0-1.0,
-  "reasoning": "한국어 100자 이내",
-  "style_description": "한국어 50자 이내"
-}}
-
-JSON only, no markdown."""
-
-        try:
-            response_text = gemini_client.generate_content(
-                prompt,
-                generation_config={"temperature": 0.7, "max_output_tokens": 500}
-            )
-        except Exception as e:
-            print(f"Gemini recommendation error: {e}")
-            return self._fallback_recommendation(top_candidates_list, count)
-
-        parsed, _ = parse_json_from_text(response_text)
-        if not parsed or (not isinstance(parsed, list) and not isinstance(parsed, dict)):
-             return self._fallback_recommendation(top_candidates_list, count)
-        
-        if isinstance(parsed, dict):
-            parsed = [parsed]
-            
-        result = []
-        cache_data = []
-        for rec in parsed:
-            top_id = rec.get("top_id")
-            bottom_id = rec.get("bottom_id")
-            
-            top_item = candidate_tops.get(top_id) or next((t for t in tops if t.get("id") == top_id), None)
-            bottom_item = candidate_bottoms.get(bottom_id) or next((b for b in bottoms if b.get("id") == bottom_id), None)
-            
-            if top_item and bottom_item:
-                result.append({
-                    "top": top_item,
-                    "bottom": bottom_item,
-                    "score": float(rec.get("score", 0.5)),
-                    "reasoning": rec.get("reasoning", ""),
-                    "style_description": rec.get("style_description", ""),
-                    "reasons": [rec.get("reasoning", "AI 추천")] if rec.get("reasoning") else []
-                })
-                cache_data.append({
-                    "top_id": top_id,
-                    "bottom_id": bottom_id,
-                    "score": float(rec.get("score", 0.5)),
-                    "reasoning": rec.get("reasoning", ""),
-                    "style_description": rec.get("style_description", "")
-                })
-        
-        if cache_data and len(self.cache) < self.cache_max_size:
-            self.cache[cache_key] = cache_data
-            
-        return result[:count]
-
-    def _fallback_recommendation(self, candidates, count):
-        return [{
-            "top": c["top"],
-            "bottom": c["bottom"],
-            "score": c["score"],
-            "reasoning": "규칙 기반 추천",
-            "style_description": f"{c['top'].get('attributes', {}).get('category', {}).get('sub', 'Top')} & {c['bottom'].get('attributes', {}).get('category', {}).get('sub', 'Bottom')}",
-            "reasons": []
-        } for c in candidates[:count]]
+        DEPRECATED: recommend_with_llm을 사용하세요.
+        """
+        return self.recommend_with_llm(tops, bottoms, count)
 
 recommender = OutfitRecommender()

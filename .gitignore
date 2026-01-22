@@ -1,9 +1,10 @@
 # Python
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 
 # Virtual Environment
+.venv/
 venv/
 env/
 .env
@@ -13,5 +14,3 @@ env/
 
 # Application Data
 extracted_attributes/
-
-

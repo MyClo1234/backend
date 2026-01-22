@@ -1,5 +1,8 @@
-from typing import Any, Dict, List, Tuple
-from app.core.constants import REQUIRED_TOP_KEYS
+import os
+from typing import Any, Dict, List, Tuple, Optional
+from fastapi import UploadFile, HTTPException
+from app.ai.prompts.extraction_prompts import REQUIRED_TOP_KEYS
+from app.core.config import Config
 
 def _is_num(x: Any) -> bool:
     return isinstance(x, (int, float)) and not (isinstance(x, float) and x != x)
@@ -94,3 +97,76 @@ def validate_schema(obj: Dict[str, Any]) -> Tuple[bool, List[str]]:
         errs.append("confidence must be number in [0,1]")
 
     return (len(errs) == 0), errs
+
+
+def validate_uploaded_file(
+    filename: Optional[str],
+    content_type: Optional[str],
+    file_size: int,
+    max_size: int = Config.MAX_FILE_SIZE
+) -> None:
+    """
+    업로드된 파일 검증 (확장자, MIME 타입, 크기)
+    
+    Args:
+        filename: 파일명
+        content_type: MIME 타입
+        file_size: 파일 크기 (bytes)
+        max_size: 최대 파일 크기 (bytes)
+        
+    Raises:
+        HTTPException: 검증 실패 시
+    """
+    # 파일명 검증
+    if not filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Filename is required. Please provide a filename for the uploaded file.",
+        )
+    
+    # 확장자 검증
+    filename_lower = filename.lower()
+    file_ext = os.path.splitext(filename_lower)[1]
+    
+    if file_ext not in Config.ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(Config.ALLOWED_EXTENSIONS)}",
+        )
+    
+    # MIME 타입 검증
+    if content_type and content_type not in Config.ALLOWED_MIME_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid MIME type. Allowed: {', '.join(Config.ALLOWED_MIME_TYPES)}",
+        )
+    
+    # 파일 크기 검증
+    if file_size > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File size exceeds maximum allowed size ({max_size / (1024 * 1024):.1f}MB).",
+        )
+
+
+def validate_file_extension(filename: str) -> str:
+    """
+    파일 확장자 검증 및 정규화
+    
+    Args:
+        filename: 파일명
+        
+    Returns:
+        정규화된 확장자 (소문자, 점 포함)
+        
+    Raises:
+        HTTPException: 허용되지 않은 확장자일 경우
+    """
+    _, ext = os.path.splitext(filename)
+    ext_lower = ext.lower()
+    
+    if ext_lower not in Config.ALLOWED_EXTENSIONS:
+        # 기본값으로 .jpg 반환 (wardrobe_manager에서 사용)
+        return '.jpg'
+    
+    return ext_lower

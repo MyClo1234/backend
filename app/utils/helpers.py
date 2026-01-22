@@ -1,9 +1,10 @@
 import json
 import io
+import copy
 from typing import Any, Dict, List, Optional
 from PIL import Image
 
-from app.core.constants import ENUMS, ALIASES, DEFAULT_OBJ
+from app.ai.prompts.extraction_prompts import ENUMS, ALIASES, DEFAULT_OBJ
 
 def _clamp01(x: Any, default: float = 0.2) -> float:
     try:
@@ -55,7 +56,7 @@ def _alias(kind: str, s: Any) -> str:
     return ALIASES.get(kind, {}).get(v, v)
 
 def normalize(obj: Dict[str, Any]) -> Dict[str, Any]:
-    out = json.loads(json.dumps(DEFAULT_OBJ))
+    out = copy.deepcopy(DEFAULT_OBJ)
 
     cat = obj.get("category", {}) if isinstance(obj.get("category"), dict) else {}
     out["category"]["main"] = _in_enum(_alias("category_main", cat.get("main")), ENUMS["category_main"])

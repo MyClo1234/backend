@@ -3,6 +3,7 @@ from fastapi import APIRouter, Query, HTTPException
 from app.services.wardrobe_manager import wardrobe_manager
 from app.services.recommender import recommender
 from app.models.schemas import OutfitScoreResponse, RecommendationResponse
+from app.utils.response_helpers import create_success_response, handle_route_exception
 
 recommendation_router = APIRouter()
 
@@ -22,18 +23,17 @@ def get_outfit_score(top_id: str = Query(...), bottom_id: str = Query(...)):
 
         score, reasons = recommender.calculate_outfit_score(top_item, bottom_item)
 
-        return {
-            "success": True,
+        return create_success_response({
             "score": round(score, 3),
             "score_percent": round(score * 100),
             "reasons": reasons,
             "top": top_item,
             "bottom": bottom_item,
-        }
+        })
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise handle_route_exception(e)
 
 
 @recommendation_router.get("/recommend/outfit", response_model=RecommendationResponse)
@@ -41,7 +41,7 @@ def recommend_outfit(
     count: int = Query(1, ge=1),
     season: Optional[str] = Query(None),
     formality: Optional[float] = Query(None),
-    use_gemini: bool = Query(True),
+    use_llm: bool = Query(True, description="LLM 사용 여부 (기본값: true, Azure OpenAI 사용)"),
 ):
     try:
         all_items = wardrobe_manager.load_items()
@@ -58,13 +58,12 @@ def recommend_outfit(
         ]
 
         if not tops or not bottoms:
-            return {
-                "success": True,
-                "outfits": [],
-                "count": 0,
-                "method": "none",
-                "message": "Not enough items in wardrobe (need at least one top and one bottom)",
-            }
+            return create_success_response(
+                {"outfits": []},
+                count=0,
+                method="none",
+                message="Not enough items in wardrobe (need at least one top and one bottom)"
+            )
 
         if season:
             tops = [
@@ -80,7 +79,7 @@ def recommend_outfit(
                 in b.get("attributes", {}).get("scores", {}).get("season", [])
             ]
 
-        if formality:
+        if formality is not None:
             tops = [
                 t
                 for t in tops
@@ -101,53 +100,36 @@ def recommend_outfit(
             ]
 
         if not tops or not bottoms:
-            return {
-                "success": True,
-                "outfits": [],
-                "count": 0,
-                "method": "none",
-                "message": "No items match the filters",
-            }
-
-        # Use Gemini for recommendation (with optimization)
-        # Note: Making this synchronous for now within async framework, could be made async later
-        if use_gemini:
-            recommendations = recommender.recommend_with_gemini(
-                tops, bottoms, count, top_candidates=5
+            return create_success_response(
+                {"outfits": []},
+                count=0,
+                method="none",
+                message="No items match the filters"
             )
-            if recommendations:
-                return {
-                    "success": True,
-                    "outfits": recommendations,
-                    "count": len(recommendations),
-                    "method": "gemini-optimized",
-                }
 
-        # Fallback
-        combinations = []
-        for top in tops:
-            for bottom in bottoms:
-                score, reasons = recommender.calculate_outfit_score(top, bottom)
-                combinations.append(
-                    {
-                        "top": top,
-                        "bottom": bottom,
-                        "score": round(score, 3),
-                        "reasons": reasons,
-                        "reasoning": ", ".join(reasons),
-                        "style_description": f"{top.get('attributes', {}).get('category', {}).get('sub', 'Top')} & {bottom.get('attributes', {}).get('category', {}).get('sub', 'Bottom')}",
-                    }
-                )
+        # Use Azure OpenAI (via LangGraph workflow) for recommendation
+        if use_llm:
+            try:
+                recommendations = recommender.recommend_with_llm(tops, bottoms, count)
+                if recommendations:
+                    return create_success_response(
+                        {"outfits": recommendations},
+                        count=len(recommendations),
+                        method="azure-openai-optimized"
+                    )
+            except Exception as e:
+                print(f"LLM recommendation error: {e}")
+                # Fall through to rule-based fallback
 
-        combinations.sort(key=lambda x: x["score"], reverse=True)
-        top_combinations = combinations[:count]
+        # Fallback: rule-based recommendation
+        recommendations = recommender._rule_based_recommendation(tops, bottoms, count)
+        return create_success_response(
+            {"outfits": recommendations},
+            count=len(recommendations),
+            method="rule-based"
+        )
 
-        return {
-            "success": True,
-            "outfits": top_combinations,
-            "count": len(top_combinations),
-            "method": "rule-based",
-        }
-
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise handle_route_exception(e)
