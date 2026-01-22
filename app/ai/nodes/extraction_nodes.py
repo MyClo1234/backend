@@ -7,7 +7,7 @@ from typing import Dict, Any
 from app.ai.schemas.workflow_state import ExtractionState
 from app.ai.clients.azure_openai_client import azure_openai_client
 from app.ai.prompts.extraction_prompts import USER_PROMPT, DEFAULT_OBJ, build_retry_prompt
-from app.utils.json_parser import parse_json_from_text
+from app.utils.json_parser import parse_dict_from_text
 from app.utils.validators import validate_schema
 from app.utils.helpers import normalize
 
@@ -50,26 +50,31 @@ def call_azure_openai_node(state: ExtractionState) -> ExtractionState:
 
 
 def parse_json_node(state: ExtractionState) -> ExtractionState:
-    """JSON 파싱 노드"""
+    """JSON 파싱 노드 - attribute extraction용 (딕셔너리만 허용)"""
     raw_response = state.get("raw_response")
     if raw_response:
         logger.info("Parsing JSON from response...")
         logger.info(f"Raw response (first 500 chars): {raw_response[:500]}")
-        parsed, repaired = parse_json_from_text(raw_response)
-        logger.info(f"Parse result: parsed={'exists' if parsed is not None else 'None'}, type={type(parsed)}")
-        if parsed is not None:
-            logger.info(f"Parsed JSON keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'N/A'}")
         
-        # 상태 업데이트 - LangGraph는 상태를 직접 수정해도 되지만 명시적으로 반환
+        # Attribute extraction은 딕셔너리만 필요하므로 parse_dict_from_text 사용
+        parsed, repaired = parse_dict_from_text(raw_response)
+        
+        logger.info(f"Parse result: parsed={'exists' if parsed is not None else 'None'}, type={type(parsed)}")
+        
+        # 상태 업데이트
         new_state = dict(state)
-        new_state["parsed_json"] = parsed
         
         if parsed is None:
             logger.warning(f"JSON parsing failed. Repaired text head: {repaired[:160]}")
-            new_state["errors"] = state.get("errors", []) + [f"JSON parsing failed. Response preview: {raw_response[:200]}"]
+            new_state["parsed_json"] = None
+            new_state["errors"] = state.get("errors", []) + [
+                f"JSON parsing failed or returned non-dict. Response preview: {raw_response[:200]}"
+            ]
         else:
+            # 딕셔너리인 경우만 성공으로 처리
+            logger.info(f"Parsed JSON keys: {list(parsed.keys())}")
+            new_state["parsed_json"] = parsed
             logger.info("JSON parsing successful - parsed_json set in state")
-            # 상태가 제대로 업데이트되었는지 확인
             logger.info(f"State after parse: parsed_json={'exists' if new_state.get('parsed_json') else 'None'}")
         
         return new_state
