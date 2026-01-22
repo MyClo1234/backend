@@ -49,7 +49,48 @@ git checkout -b feat/#이슈번호-설명
 - PR 설명란에 `Closes #이슈번호` 형식을 사용하여 관련 이슈를 자동으로 종료하도록 설정합니다.
 - 리뷰어(Reviewers)를 지정하고 피드백을 반영한 후 머지(Merge)합니다.
 
-## 📋 목차
+## � 빠른 실행 가이드 (Azure Functions)
+
+이 프로젝트는 Azure Functions 기반으로 실행됩니다.
+
+**1. 필수 도구 설치**
+
+**macOS:**
+```bash
+brew tap azure/functions
+brew install azure-functions-core-tools@4
+```
+
+**Windows:**
+```powershell
+winget install Microsoft.Azure.FunctionsCoreTools
+# 또는 npm 사용 시: npm i -g azure-functions-core-tools@4 --unsafe-perm true
+```
+
+**2. 실행 (로컬)**
+
+**macOS/Linux:**
+```bash
+# 가상 환경 활성화
+source .venv/bin/activate
+
+# 함수 실행
+func start
+```
+
+**Windows (PowerShell):**
+```powershell
+# 가상 환경 활성화
+.venv\Scripts\Activate
+
+# 함수 실행
+func start
+```
+
+- **서버 주소**: http://localhost:7071
+- **API 문서**: http://localhost:7071/docs
+
+## �📋 목차
 
 - [주요 기능](#주요-기능)
 - [기술 스택](#기술-스택)
@@ -251,9 +292,9 @@ uv run python -m app.main
 
 ### 필수 환경 변수
 
-| 변수명 | 설명 | 예시 |
-|--------|------|------|
-| `AZURE_OPENAI_API_KEY` | Azure OpenAI API 키 | `your_key_here` |
+| 변수명                  | 설명                        | 예시                                      |
+| ----------------------- | --------------------------- | ----------------------------------------- |
+| `AZURE_OPENAI_API_KEY`  | Azure OpenAI API 키         | `your_key_here`                           |
 | `AZURE_OPENAI_ENDPOINT` | Azure OpenAI 엔드포인트 URL | `https://your-resource.openai.azure.com/` |
 
 ### 선택적 환경 변수
@@ -704,12 +745,12 @@ uv pip list
 
 **uv vs pip 비교:**
 
-| 작업 | pip | uv |
-|------|-----|-----|
-| 의존성 설치 | `pip install -r requirements.txt` | `uv sync` |
-| 패키지 추가 | `pip install package` | `uv add package` |
-| 스크립트 실행 | `python script.py` | `uv run script.py` |
-| 속도 | 보통 | 매우 빠름 |
+| 작업          | pip                               | uv                 |
+| ------------- | --------------------------------- | ------------------ |
+| 의존성 설치   | `pip install -r requirements.txt` | `uv sync`          |
+| 패키지 추가   | `pip install package`             | `uv add package`   |
+| 스크립트 실행 | `python script.py`                | `uv run script.py` |
+| 속도          | 보통                              | 매우 빠름          |
 
 ### 의존성 추가 시
 

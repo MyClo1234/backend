@@ -14,3 +14,6 @@ env/
 
 # Application Data
 extracted_attributes/
+
+# Azure Functions
+local.settings.json
