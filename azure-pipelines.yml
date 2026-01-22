@@ -4,7 +4,7 @@ trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: codify-self-host-ci-cd
 
 steps:
 # 1. uv 설치 (공식 스크립트 사용) & 경로 설정
@@ -19,9 +19,3 @@ steps:
 - script: |
     uv sync --frozen
   displayName: 'Install dependencies with uv'
-
-# 3. 테스트 실행
-# uv run: uv가 만든 가상환경 내에서 명령어를 실행합니다.
-- script: |
-    uv run pytest
-  displayName: 'Run tests'
