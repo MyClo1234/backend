@@ -12,7 +12,7 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     # 이미 존재하는 유저인지 확인
     existing_user = auth_service.get_user_by_username(db, user_data.username)
     if existing_user:
-        raise HTTPException(status_code=400, detail="이미 등록된 아이디입니다.")
+        raise HTTPException(status_code=400, detail="이미 존재하는 아이디입니다.")
     return auth_service.register_user(db, user_data)
 
 

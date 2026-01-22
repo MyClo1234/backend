@@ -11,12 +11,13 @@ from app.routers.wardrobe_routes import wardrobe_router
 from app.routers.recommendation_routes import recommendation_router
 
 from app.database import engine, Base
-from app.models import user
+from app.models.user import User
 
 from app.routers.auth import router as auth_router
-from app.routers.health_routes import router as health_router
+from app.routers.health_routes import health_router
 
 Base.metadata.create_all(bind=engine)
+print(f"Base main.py: {Base}...")  # 앞부분만 출력
 
 
 def create_app() -> FastAPI:

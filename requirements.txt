@@ -1,4 +1,4 @@
-# FastAPI API 서버 필수 라이브러리
+# FastAPI and API Server
 fastapi>=0.110.0
 uvicorn>=0.27.0
 python-multipart>=0.0.7
@@ -6,16 +6,25 @@ python-multipart>=0.0.7
 # Azure OpenAI API
 openai>=1.0.0
 
-# LangGraph 및 LangChain
+# LangGraph and LangChain
 langgraph>=0.0.1
 langchain>=0.1.0
 langchain-openai>=0.0.5
 
-# 이미지 처리
+# Image Processing
 Pillow>=10.0.0
 
-# 환경변수 관리
+# Environment Variables
 python-dotenv>=1.0.0
 
-# 데이터 검증
+# Data Validation
 pydantic>=2.0.0
+
+# Security and Authentication
+passlib>=1.7.4
+bcrypt>=4.0.1
+python-jose>=3.3.0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0

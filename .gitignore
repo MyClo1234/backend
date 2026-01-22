@@ -4,6 +4,7 @@
 *$py.class
 
 # Virtual Environment
+my_venv/
 .venv/
 venv/
 env/
