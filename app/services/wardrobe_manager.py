@@ -3,148 +3,145 @@ import json
 import time
 import random
 from datetime import datetime
-from pathlib import Path
 from typing import List, Dict, Any, Optional
-import logging
+from azure.storage.blob import BlobServiceClient, ContentSettings
 from app.core.config import Config
 from app.utils.validators import validate_file_extension
-from app.services.blob_storage import get_blob_storage_service
 
-logger = logging.getLogger(__name__)
 
 class WardrobeManager:
     def __init__(self):
-        self.output_dir = Path(Config.OUTPUT_DIR)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Blob Storage 서비스 초기화 (환경변수가 설정되어 있을 때만)
-        self.blob_storage_service = None
-        try:
-            if Config.AZURE_STORAGE_CONNECTION_STRING:
-                self.blob_storage_service = get_blob_storage_service()
-                logger.info("Blob Storage service initialized successfully")
-            else:
-                logger.warning("AZURE_STORAGE_CONNECTION_STRING not set, using local file storage")
-        except Exception as e:
-            logger.warning(f"Failed to initialize Blob Storage service: {e}. Using local file storage.")
-            self.blob_storage_service = None
+        self.account_name = Config.AZURE_STORAGE_ACCOUNT_NAME
+        self.account_key = Config.AZURE_STORAGE_ACCOUNT_KEY
+        self.container_name = Config.AZURE_STORAGE_CONTAINER_NAME
+        self.blob_service_client = None
+        self.container_client = None
+
+        if self.account_name and self.account_key:
+            try:
+                account_url = f"https://{self.account_name}.blob.core.windows.net"
+                self.blob_service_client = BlobServiceClient(
+                    account_url=account_url, credential=self.account_key
+                )
+                self.container_client = self.blob_service_client.get_container_client(
+                    self.container_name
+                )
+                # Create container if it doesn't exist
+                if not self.container_client.exists():
+                    self.container_client.create_container()
+            except Exception as e:
+                print(f"Failed to initialize Blob Storage: {e}")
 
     def load_items(self) -> List[Dict[str, Any]]:
         items = []
-        if not self.output_dir.exists():
+        if not self.container_client:
             return items
-        
+
         try:
-            for json_file in self.output_dir.glob('*.json'):
-                try:
-                    with open(json_file, 'r', encoding='utf-8') as f:
-                        attributes = json.load(f)
-                        item_id = json_file.stem
-                        
-                        # Check if corresponding image exists
-                        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-                        image_path = None
-                        for ext in image_extensions:
-                            potential_image = self.output_dir / f"{item_id}{ext}"
-                            if potential_image.exists():
-                                image_path = f"/api/images/{item_id}{ext}"
-                                break
-                        
-                        items.append({
-                            "id": item_id,
-                            "filename": json_file.name,
-                            "attributes": attributes,
-                            "image_url": image_path
-                        })
-                except Exception as e:
-                    print(f"Error loading {json_file.name}: {e}")
-                    continue
+            # List all blobs
+            blobs = self.container_client.list_blobs()
+
+            # Map items by ID to group JSON and image
+            item_map = {}
+            for blob in blobs:
+                # blob.name e.g., "attributes_... .json" or "attributes_... .jpg"
+                name_parts = os.path.splitext(blob.name)
+                item_id = name_parts[0]
+                ext = name_parts[1].lower()
+
+                if item_id not in item_map:
+                    item_map[item_id] = {"json": None, "image": None, "id": item_id}
+
+                if ext == ".json":
+                    item_map[item_id]["json"] = blob.name
+                elif ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
+                    item_map[item_id]["image"] = blob.name
+
+            # Process valid items
+            for item_id, data in item_map.items():
+                if data["json"] and data["image"]:
+                    try:
+                        # Download JSON content
+                        blob_client = self.container_client.get_blob_client(
+                            data["json"]
+                        )
+                        json_content = blob_client.download_blob().readall()
+                        attributes = json.loads(json_content)
+
+                        image_url = self.container_client.get_blob_client(
+                            data["image"]
+                        ).url
+
+                        items.append(
+                            {
+                                "id": item_id,
+                                "filename": data["image"],  # Use blob name as filename
+                                "attributes": attributes,
+                                "image_url": image_url,
+                            }
+                        )
+                    except Exception as e:
+                        print(f"Error loading item {item_id}: {e}")
+
         except Exception as e:
-            print(f"Error reading wardrobe directory: {e}")
-        
+            print(f"Error reading from Blob Storage: {e}")
+
         return items
 
-    def save_item(self, image_bytes: bytes, original_filename: str, attributes: dict, user_id: Optional[str] = None) -> dict:
-        """
-        이미지와 속성을 저장합니다.
-        Blob Storage가 설정되어 있으면 Blob Storage에 저장하고, 
-        그렇지 않으면 로컬 파일 시스템에 저장합니다.
-        
-        Args:
-            image_bytes: 이미지 바이트 데이터
-            original_filename: 원본 파일명
-            attributes: 추출된 속성 딕셔너리
-            user_id: 사용자 ID (선택사항, 기본값: "default")
-        
-        Returns:
-            저장 결과 딕셔너리
-        """
-        # user_id가 없으면 기본값 사용
-        if not user_id:
-            user_id = "default"
-        
-        # Blob Storage를 사용할 수 있는 경우
-        if self.blob_storage_service:
-            try:
-                # Blob Storage에 이미지 업로드
-                blob_result = self.blob_storage_service.upload_image(
-                    image_bytes=image_bytes,
-                    user_id=user_id,
-                    original_filename=original_filename
-                )
-                
-                blob_name = blob_result["blob_name"]
-                blob_url = blob_result["blob_url"]
-                item_id = blob_result["item_id"]
-                
-                # JSON은 로컬에 저장 (속성 데이터는 로컬에서 관리)
-                json_file = self.output_dir / f"{item_id}.json"
-                with open(json_file, 'w', encoding='utf-8') as f:
-                    json.dump(attributes, f, ensure_ascii=False, indent=2)
-                
-                logger.info(f"Image saved to Blob Storage: {blob_name}, item_id: {item_id}")
-                
-                return {
-                    "saved_to": str(json_file),
-                    "image_url": blob_url,  # Blob Storage URL 사용
-                    "item_id": item_id,
-                    "blob_name": blob_name,
-                    "storage_type": "blob_storage"
-                }
-            except Exception as e:
-                logger.error(f"Failed to save to Blob Storage: {e}. Falling back to local storage.")
-                # Blob Storage 저장 실패 시 로컬 저장으로 폴백
-        
-        # 로컬 파일 시스템에 저장 (Blob Storage가 없거나 실패한 경우)
+    def save_item(
+        self,
+        image_bytes: bytes,
+        original_filename: str,
+        attributes: dict,
+        user_id: Optional[str] = None,
+    ) -> dict:
+        if not self.container_client:
+            raise Exception("Blob Storage not initialized")
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         milliseconds = int(time.time() * 1000) % 1000
         random_suffix = random.randint(1000, 9999)
         base_id = f"attributes_{timestamp}_{milliseconds:03d}_{random_suffix}"
-        
+
         # Save JSON
-        json_file = self.output_dir / f"{base_id}.json"
-        with open(json_file, 'w', encoding='utf-8') as f:
-            json.dump(attributes, f, ensure_ascii=False, indent=2)
-        
-        # Save image file - use validator for extension
+        json_filename = f"{base_id}.json"
+        json_client = self.container_client.get_blob_client(json_filename)
+        json_data = json.dumps(attributes, ensure_ascii=False, indent=2)
+        json_client.upload_blob(
+            json_data,
+            overwrite=True,
+            content_settings=ContentSettings(content_type="application/json"),
+        )
+
+        # Save image file
         if original_filename:
             ext = validate_file_extension(original_filename)
         else:
-            ext = '.jpg'
-        
-        image_file = self.output_dir / f"{base_id}{ext}"
-        with open(image_file, 'wb') as f:
-            f.write(image_bytes)
-        
-        image_url = f"/api/images/{base_id}{ext}"
-        
-        logger.info(f"Image saved to local storage: {base_id}")
-        
+            ext = ".jpg"
+
+        image_filename = f"{base_id}{ext}"
+        image_client = self.container_client.get_blob_client(image_filename)
+
+        # Determine content type based on extension
+        content_type = "image/jpeg"
+        if ext == ".png":
+            content_type = "image/png"
+        elif ext == ".gif":
+            content_type = "image/gif"
+        elif ext == ".webp":
+            content_type = "image/webp"
+
+        image_client.upload_blob(
+            image_bytes,
+            overwrite=True,
+            content_settings=ContentSettings(content_type=content_type),
+        )
+
         return {
-            "saved_to": str(json_file),
-            "image_url": image_url,
+            "saved_to": json_filename,  # Return blob name
+            "image_url": image_client.url,
             "item_id": base_id,
-            "storage_type": "local"
         }
+
 
 wardrobe_manager = WardrobeManager()

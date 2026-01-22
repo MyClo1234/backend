@@ -1,11 +1,6 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
-resolution-markers = [
-    "python_full_version >= '3.14'",
-    "python_full_version == '3.13.*'",
-    "python_full_version < '3.13'",
-]
 
 [[package]]
 name = "ai-stylist-agent"
@@ -27,7 +22,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "azure-storage-blob", specifier = ">=12.19.0" },
+    { name = "azure-storage-blob", specifier = ">=12.28.0" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "langchain", specifier = ">=0.1.0" },
     { name = "langchain-openai", specifier = ">=0.0.5" },

@@ -31,6 +31,9 @@ venv.bak/
 # Application Data
 extracted_attributes/
 
+# Azure Functions
+local.settings.json
+
 # Logs
 *.log
 logs/
