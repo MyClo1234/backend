@@ -19,3 +19,6 @@ python-dotenv>=1.0.0
 
 # 데이터 검증
 pydantic>=2.0.0
+
+# Azure Blob Storage
+azure-storage-blob>=12.19.0
