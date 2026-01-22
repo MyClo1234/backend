@@ -23,6 +23,7 @@ def preprocess_image_node(state: ExtractionState) -> ExtractionState:
 
 def call_azure_openai_node(state: ExtractionState) -> ExtractionState:
     """Azure OpenAI Vision API 호출 노드"""
+    new_state = dict(state)
     try:
         logger.info("Calling Azure OpenAI Vision API...")
         raw_response = azure_openai_client.generate_with_vision(
@@ -33,63 +34,89 @@ def call_azure_openai_node(state: ExtractionState) -> ExtractionState:
         )
         if not raw_response or not raw_response.strip():
             logger.warning("Azure OpenAI returned empty response")
-            state["raw_response"] = None
-            state["errors"].append("Empty response from API")
+            new_state["raw_response"] = None
+            new_state["errors"] = state.get("errors", []) + ["Empty response from API"]
         else:
             logger.info(f"API response received (length: {len(raw_response)})")
-            state["raw_response"] = raw_response
-            state["errors"] = []
+            new_state["raw_response"] = raw_response
+            new_state["errors"] = []
     except Exception as e:
         # API 호출 실패 시 에러만 저장하고 final_result는 설정하지 않음
         # (나중에 normalize_result_node에서 처리)
         logger.error(f"Azure OpenAI API call failed: {str(e)}", exc_info=True)
-        state["raw_response"] = None
-        state["errors"].append(f"API call failed: {str(e)}")
-    return state
+        new_state["raw_response"] = None
+        new_state["errors"] = state.get("errors", []) + [f"API call failed: {str(e)}"]
+    return new_state
 
 
 def parse_json_node(state: ExtractionState) -> ExtractionState:
     """JSON 파싱 노드"""
-    if state.get("raw_response"):
+    raw_response = state.get("raw_response")
+    if raw_response:
         logger.info("Parsing JSON from response...")
-        parsed, repaired = parse_json_from_text(state["raw_response"])
-        state["parsed_json"] = parsed
+        logger.info(f"Raw response (first 500 chars): {raw_response[:500]}")
+        parsed, repaired = parse_json_from_text(raw_response)
+        logger.info(f"Parse result: parsed={'exists' if parsed is not None else 'None'}, type={type(parsed)}")
+        if parsed is not None:
+            logger.info(f"Parsed JSON keys: {list(parsed.keys()) if isinstance(parsed, dict) else 'N/A'}")
+        
+        # 상태 업데이트 - LangGraph는 상태를 직접 수정해도 되지만 명시적으로 반환
+        new_state = dict(state)
+        new_state["parsed_json"] = parsed
+        
         if parsed is None:
             logger.warning(f"JSON parsing failed. Repaired text head: {repaired[:160]}")
-            state["errors"].append(f"JSON parsing failed. Response preview: {state['raw_response'][:200]}")
+            new_state["errors"] = state.get("errors", []) + [f"JSON parsing failed. Response preview: {raw_response[:200]}"]
         else:
-            logger.info("JSON parsing successful")
+            logger.info("JSON parsing successful - parsed_json set in state")
+            # 상태가 제대로 업데이트되었는지 확인
+            logger.info(f"State after parse: parsed_json={'exists' if new_state.get('parsed_json') else 'None'}")
+        
+        return new_state
     else:
         logger.warning("No raw_response to parse")
-    return state
+        return state
 
 
 def validate_schema_node(state: ExtractionState) -> ExtractionState:
     """스키마 검증 노드"""
-    if state.get("parsed_json"):
+    parsed_json = state.get("parsed_json")
+    logger.info(f"validate_schema_node: parsed_json={'exists' if parsed_json is not None else 'None'}, type={type(parsed_json)}")
+    
+    if parsed_json is not None:
         logger.info("Validating schema...")
-        ok, errs = validate_schema(state["parsed_json"])
+        ok, errs = validate_schema(parsed_json)
         if ok:
             # 검증 성공 - 정규화 후 최종 결과 설정
             logger.info("Schema validation successful")
-            normalized = normalize(state["parsed_json"])
-            state["final_result"] = normalized
-            state["confidence"] = normalized.get("confidence", 0.5)
+            normalized = normalize(parsed_json)
+            new_state = dict(state)
+            new_state["final_result"] = normalized
+            new_state["confidence"] = normalized.get("confidence", 0.5)
+            return new_state
         else:
             # 검증 실패 - 에러 저장
             logger.warning(f"Schema validation failed: {errs[:3]}")
-            state["errors"] = errs
+            new_state = dict(state)
+            new_state["errors"] = errs
+            return new_state
     else:
         logger.warning("No parsed_json to validate")
-    return state
+        # parsed_json이 None인데 raw_response가 있으면 파싱 문제
+        if state.get("raw_response"):
+            logger.error(f"parsed_json is None but raw_response exists! This indicates a state update issue.")
+            logger.error(f"Raw response: {state['raw_response'][:500]}")
+        return state
 
 
 def retry_node(state: ExtractionState) -> ExtractionState:
     """재시도 노드"""
+    new_state = dict(state)
+    
     if state.get("retry_count", 0) >= 1:
         # 이미 재시도했으면 더 이상 재시도하지 않음
         logger.info("Already retried, skipping retry")
-        return state
+        return new_state
     
     if state.get("errors") and not state.get("final_result"):
         # 에러가 있고 최종 결과가 없으면 재시도
@@ -104,28 +131,30 @@ def retry_node(state: ExtractionState) -> ExtractionState:
             )
             if not raw_response or not raw_response.strip():
                 logger.warning("Retry returned empty response")
-                state["raw_response"] = None
-                state["errors"].append("Empty response from retry API call")
+                new_state["raw_response"] = None
+                new_state["errors"] = state.get("errors", []) + ["Empty response from retry API call"]
             else:
                 logger.info(f"Retry response received (length: {len(raw_response)})")
-                state["raw_response"] = raw_response
-                state["retry_count"] = state.get("retry_count", 0) + 1
-                state["errors"] = []  # 재시도 시 에러 초기화
+                new_state["raw_response"] = raw_response
+                new_state["retry_count"] = state.get("retry_count", 0) + 1
+                new_state["errors"] = []  # 재시도 시 에러 초기화
         except Exception as e:
             logger.error(f"Retry API call failed: {str(e)}", exc_info=True)
-            state["errors"].append(f"Retry failed: {str(e)}")
+            new_state["errors"] = state.get("errors", []) + [f"Retry failed: {str(e)}"]
     else:
         logger.info("No retry needed (no errors or final_result exists)")
     
-    return state
+    return new_state
 
 
 def normalize_result_node(state: ExtractionState) -> ExtractionState:
     """결과 정규화 노드"""
+    new_state = dict(state)
+    
     if state.get("final_result"):
         # 이미 최종 결과가 있으면 그대로 반환
         logger.info("Final result already exists, skipping normalization")
-        return state
+        return new_state
     
     if state.get("parsed_json"):
         # 파싱은 성공했지만 검증 실패한 경우 정규화하여 반환
@@ -137,9 +166,9 @@ def normalize_result_node(state: ExtractionState) -> ExtractionState:
                 (normalized["meta"]["notes"] or "") + 
                 f" | SCHEMA_INVALID: {', '.join(errors[:3])}"
             )[:300]
-        state["final_result"] = normalized
-        state["confidence"] = normalized.get("confidence", 0.2)
-        logger.info(f"Normalized result with confidence: {state['confidence']}")
+        new_state["final_result"] = normalized
+        new_state["confidence"] = normalized.get("confidence", 0.2)
+        logger.info(f"Normalized result with confidence: {new_state['confidence']}")
     else:
         # 모든 시도 실패 시 기본값 반환
         logger.error(f"All extraction attempts failed. Errors: {state.get('errors', [])}")
@@ -149,10 +178,10 @@ def normalize_result_node(state: ExtractionState) -> ExtractionState:
         out = copy.deepcopy(DEFAULT_OBJ)
         error_summary = "; ".join(state.get("errors", [])[:3]) if state.get("errors") else "Unknown error"
         out["meta"]["notes"] = f"All extraction attempts failed: {error_summary}"
-        state["final_result"] = out
-        state["confidence"] = 0.1
+        new_state["final_result"] = out
+        new_state["confidence"] = 0.1
     
-    return state
+    return new_state
 
 
 def should_retry(state: ExtractionState) -> str:
