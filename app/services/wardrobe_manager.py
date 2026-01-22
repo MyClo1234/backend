@@ -3,7 +3,7 @@ import json
 import time
 import random
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from app.core.config import Config
 from app.utils.validators import validate_file_extension
@@ -89,7 +89,11 @@ class WardrobeManager:
         return items
 
     def save_item(
-        self, image_bytes: bytes, original_filename: str, attributes: dict
+        self,
+        image_bytes: bytes,
+        original_filename: str,
+        attributes: dict,
+        user_id: Optional[str] = None,
     ) -> dict:
         if not self.container_client:
             raise Exception("Blob Storage not initialized")

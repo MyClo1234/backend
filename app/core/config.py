@@ -57,3 +57,10 @@ class Config:
             print(
                 "       Please set AZURE_OPENAI_ENDPOINT in .env file or environment variables."
             )
+        if not Config.AZURE_STORAGE_ACCOUNT_NAME:
+            print(
+                "Warning: AZURE_STORAGE_ACCOUNT_NAME environment variable is not set."
+            )
+            print(
+                "       Please set AZURE_STORAGE_ACCOUNT_NAME in .env file or environment variables."
+            )
