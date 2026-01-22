@@ -2,9 +2,12 @@
 Azure OpenAI API 클라이언트
 """
 import base64
+import logging
 from typing import Optional, List, Dict, Any
 from openai import AzureOpenAI
 from app.core.config import Config
+
+logger = logging.getLogger(__name__)
 
 
 class AzureOpenAIClient:
@@ -106,6 +109,8 @@ class AzureOpenAIClient:
                     api_params[key] = value
             
             # Azure OpenAI API 호출
+            logger.info(f"Calling Azure OpenAI API with model: {self.deployment_name}")
+            logger.debug(f"API params: temperature={api_params.get('temperature')}, max_tokens={api_params.get('max_tokens')}")
             response = self.client.chat.completions.create(
                 model=self.deployment_name,
                 messages=messages,
@@ -114,11 +119,19 @@ class AzureOpenAIClient:
             
             # 응답 추출
             if response.choices and len(response.choices) > 0:
-                return response.choices[0].message.content
+                content = response.choices[0].message.content
+                if content:
+                    logger.info(f"API response received (length: {len(content)})")
+                    logger.debug(f"Response preview: {content[:200]}")
+                else:
+                    logger.warning("API returned empty content")
+                return content or ""
             else:
+                logger.error("No choices in API response")
                 raise Exception("No response from Azure OpenAI API")
                 
         except Exception as e:
+            logger.error(f"Azure OpenAI API error: {str(e)}", exc_info=True)
             raise Exception(f"Azure OpenAI API error: {str(e)}")
     
     def generate_with_vision(
