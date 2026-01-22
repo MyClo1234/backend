@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 
+
 # -----------------------------
 # Shared/Nested Models
 # -----------------------------
@@ -9,23 +10,28 @@ class CategoryModel(BaseModel):
     sub: str
     confidence: float
 
+
 class ColorModel(BaseModel):
     primary: str
     secondary: List[str]
     tone: str
     confidence: float
 
+
 class PatternModel(BaseModel):
     type: str
     confidence: float
+
 
 class MaterialModel(BaseModel):
     guess: str
     confidence: float
 
+
 class FitModel(BaseModel):
     type: str
     confidence: float
+
 
 class DetailsModel(BaseModel):
     neckline: str
@@ -34,15 +40,18 @@ class DetailsModel(BaseModel):
     closure: List[str]
     print_or_logo: bool
 
+
 class ScoresModel(BaseModel):
     formality: float
     warmth: float
     season: List[str]
     versatility: float
 
+
 class MetaModel(BaseModel):
     is_layering_piece: bool
     notes: Optional[str] = None
+
 
 class AttributesSchema(BaseModel):
     category: CategoryModel
@@ -56,6 +65,7 @@ class AttributesSchema(BaseModel):
     meta: MetaModel
     confidence: float
 
+
 # -----------------------------
 # Response Models
 # -----------------------------
@@ -66,16 +76,19 @@ class ExtractionResponse(BaseModel):
     image_url: str
     item_id: str
 
+
 class WardrobeItemSchema(BaseModel):
     id: str
     filename: str
     attributes: AttributesSchema
     image_url: Optional[str] = None
 
+
 class WardrobeResponse(BaseModel):
     success: bool
     items: List[WardrobeItemSchema]
     count: int
+
 
 class OutfitRecommendationSchema(BaseModel):
     top: WardrobeItemSchema
@@ -85,6 +98,7 @@ class OutfitRecommendationSchema(BaseModel):
     reasoning: Optional[str] = None
     style_description: Optional[str] = None
 
+
 class OutfitScoreResponse(BaseModel):
     success: bool
     score: float
@@ -92,6 +106,7 @@ class OutfitScoreResponse(BaseModel):
     reasons: List[str]
     top: WardrobeItemSchema
     bottom: WardrobeItemSchema
+
 
 class RecommendationResponse(BaseModel):
     success: bool

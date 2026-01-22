@@ -1,6 +1,7 @@
 """
 이미지 속성 추출 LangGraph 워크플로우
 """
+import logging
 from typing import Dict, Any
 from langgraph.graph import StateGraph, END
 from app.ai.schemas.workflow_state import ExtractionState
@@ -13,6 +14,8 @@ from app.ai.nodes.extraction_nodes import (
     normalize_result_node,
     should_retry
 )
+
+logger = logging.getLogger(__name__)
 
 
 def create_extraction_workflow() -> StateGraph:
@@ -73,6 +76,8 @@ def extract_attributes(image_bytes: bytes, retry_on_schema_fail: bool = True) ->
     Returns:
         추출된 속성 딕셔너리
     """
+    logger.info(f"Starting attribute extraction (image size: {len(image_bytes)} bytes)")
+    
     # 초기 상태 설정
     initial_state: ExtractionState = {
         "image_bytes": image_bytes,
@@ -85,16 +90,31 @@ def extract_attributes(image_bytes: bytes, retry_on_schema_fail: bool = True) ->
     }
     
     # 워크플로우 실행
-    workflow = get_extraction_workflow()
-    final_state = workflow.invoke(initial_state)
-    
-    # 최종 결과 반환
-    if final_state.get("final_result"):
-        return final_state["final_result"]
-    else:
-        # 폴백: 기본값 반환
+    try:
+        workflow = get_extraction_workflow()
+        logger.info("Invoking extraction workflow...")
+        final_state = workflow.invoke(initial_state)
+        logger.info("Workflow execution completed")
+    except Exception as e:
+        logger.error(f"Workflow execution failed: {str(e)}", exc_info=True)
         from app.ai.prompts.extraction_prompts import DEFAULT_OBJ
         import copy
         out = copy.deepcopy(DEFAULT_OBJ)
-        out["meta"]["notes"] = "Workflow execution failed"
+        out["meta"]["notes"] = f"Workflow execution failed: {str(e)}"
+        return out
+    
+    # 최종 결과 반환
+    if final_state.get("final_result"):
+        logger.info(f"Extraction successful (confidence: {final_state.get('confidence', 0)})")
+        return final_state["final_result"]
+    else:
+        # 폴백: 기본값 반환
+        logger.error("No final result from workflow")
+        logger.error(f"Final state: errors={final_state.get('errors', [])}, "
+                    f"raw_response={'exists' if final_state.get('raw_response') else 'None'}, "
+                    f"parsed_json={'exists' if final_state.get('parsed_json') else 'None'}")
+        from app.ai.prompts.extraction_prompts import DEFAULT_OBJ
+        import copy
+        out = copy.deepcopy(DEFAULT_OBJ)
+        out["meta"]["notes"] = "Workflow execution failed - no final result"
         return out
