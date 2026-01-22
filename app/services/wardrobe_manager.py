@@ -5,6 +5,7 @@ import random
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from azure.storage.blob import BlobServiceClient, ContentSettings
+from sqlalchemy.orm import Session
 from app.core.config import Config
 from app.utils.validators import validate_file_extension
 
@@ -90,10 +91,11 @@ class WardrobeManager:
 
     def save_item(
         self,
+        db: Session,  # DB Session added
         image_bytes: bytes,
         original_filename: str,
         attributes: dict,
-        user_id: Optional[str] = None,
+        user_id: int,  # Changed to int for FK
     ) -> dict:
         if not self.container_client:
             raise Exception("Blob Storage not initialized")
@@ -103,7 +105,7 @@ class WardrobeManager:
         random_suffix = random.randint(1000, 9999)
         base_id = f"attributes_{timestamp}_{milliseconds:03d}_{random_suffix}"
 
-        # Save JSON
+        # 1. Save JSON to Blob (Legacy/Backup)
         json_filename = f"{base_id}.json"
         json_client = self.container_client.get_blob_client(json_filename)
         json_data = json.dumps(attributes, ensure_ascii=False, indent=2)
@@ -113,7 +115,7 @@ class WardrobeManager:
             content_settings=ContentSettings(content_type="application/json"),
         )
 
-        # Save image file
+        # 2. Save Image to Blob
         if original_filename:
             ext = validate_file_extension(original_filename)
         else:
@@ -122,7 +124,7 @@ class WardrobeManager:
         image_filename = f"{base_id}{ext}"
         image_client = self.container_client.get_blob_client(image_filename)
 
-        # Determine content type based on extension
+        # Determine content type
         content_type = "image/jpeg"
         if ext == ".png":
             content_type = "image/png"
@@ -137,10 +139,59 @@ class WardrobeManager:
             content_settings=ContentSettings(content_type=content_type),
         )
 
+        image_url = image_client.url
+
+        # 3. Save to Database (ORM)
+        from app.models.wardrobe import (
+            ClosetItem,
+        )  # Import here to avoid circular dependency
+
+        # Create ClosetItem
+        # Extract fields safely from attributes
+        category = attributes.get("category", "UNKNOWN")
+        sub_category = attributes.get("sub_category")
+
+        # Parse features (everything else)
+        features = attributes.copy()
+        if "category" in features:
+            del features["category"]
+        if "sub_category" in features:
+            del features["sub_category"]
+
+        # Season and Mood (if present in attributes, otherwise empty)
+        season = attributes.get("season", [])
+        if isinstance(season, str):  # Handle if it came as string
+            season = [season]
+
+        mood_tags = attributes.get("mood_tags", [])
+        if isinstance(mood_tags, str):
+            mood_tags = [mood_tags]
+
+        # Clean features to separate season/mood if needed or keep them duplicate?
+        # Let's clean them from features to avoid duplication if column exists
+        if "season" in features:
+            del features["season"]
+        if "mood_tags" in features:
+            del features["mood_tags"]
+
+        db_item = ClosetItem(
+            user_id=user_id,
+            image_path=image_url,
+            category=category,
+            sub_category=sub_category,
+            features=features,
+            season=season,
+            mood_tags=mood_tags,
+        )
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+
         return {
-            "saved_to": json_filename,  # Return blob name
-            "image_url": image_client.url,
-            "item_id": base_id,
+            "saved_to": json_filename,
+            "image_url": image_url,
+            "item_id": db_item.id,  # Return DB ID
+            "blob_name": image_filename,
         }
 
 

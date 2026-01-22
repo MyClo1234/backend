@@ -1,6 +1,5 @@
 import os
 import logging
-import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,7 +58,15 @@ def create_app() -> FastAPI:
 
     app.include_router(extraction_router, prefix="/api", tags=["Extraction"])
     app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
+    app.include_router(extraction_router, prefix="/api", tags=["Extraction"])
+    app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
     app.include_router(recommendation_router, prefix="/api", tags=["Recommendation"])
+
+    # User router
+    if HAS_DB:
+        from app.routers.user_routes import router as user_router
+
+        app.include_router(user_router, prefix="/api", tags=["Users"])
 
     return app
 
@@ -68,5 +75,7 @@ app = create_app()
 
 if __name__ == "__main__":
     # Ensure config can only warn if generated
+    import uvicorn
+
     Config.check_api_key()
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
