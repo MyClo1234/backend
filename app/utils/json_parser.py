@@ -104,3 +104,21 @@ def parse_json_from_text(text: str) -> Tuple[Optional[Any], str]:
         return None, repaired
     except Exception:
         return None, repaired
+
+
+def parse_dict_from_text(text: str) -> Tuple[Optional[Dict[str, Any]], str]:
+    """
+    Parse JSON dict from text (for attribute extraction).
+    Only returns dict, ignores arrays.
+    Returns: (parsed_dict or None, repaired_text)
+    """
+    # 딕셔너리만 찾기 (배열은 무시)
+    candidate = _first_balanced_json_object(text) or text
+    repaired = _repair_json_like(candidate)
+    try:
+        obj = json.loads(repaired)
+        if isinstance(obj, dict):
+            return obj, repaired
+        return None, repaired
+    except Exception:
+        return None, repaired

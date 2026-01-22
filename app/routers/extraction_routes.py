@@ -11,15 +11,16 @@ extraction_router = APIRouter()
 @extraction_router.post("/extract", response_model=ExtractionResponse)
 async def extract(image: UploadFile = File(...)):
     """Extract clothing attributes from uploaded image"""
+
     try:
         # Read contents first for size validation
         contents = await image.read()
-        
+
         # File validation (filename, extension, MIME type, size)
         validate_uploaded_file(
             filename=image.filename,
             content_type=image.content_type,
-            file_size=len(contents)
+            file_size=len(contents),
         )
 
         # Sync extraction call
