@@ -9,6 +9,8 @@ from app.routers.health_routes import health_router
 from app.routers.extraction_routes import extraction_router
 from app.routers.wardrobe_routes import wardrobe_router
 from app.routers.recommendation_routes import recommendation_router
+from app.routers.weather_routes import router as weather_router
+
 
 # 로깅 설정
 logging.basicConfig(
@@ -50,6 +52,8 @@ def create_app() -> FastAPI:
     # app.mount("/api/images", StaticFiles(directory=Config.OUTPUT_DIR), name="images")
 
     # Include routers
+    app.include_router(weather_router, prefix="/api", tags=["Weather"])
+
     app.include_router(health_router, prefix="/api", tags=["Health"])
 
     # Auth router (파일이 존재할 때만)
