@@ -6,20 +6,7 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
-  - script: |
-      echo ">>> 1. Checking current DNS server..."
-      resolvectl status || cat /etc/resolv.conf
-      
-      echo "---------------------------------"
-      echo ">>> 2. Default Lookup (Likely to fail)"
-      nslookup codify-functions-backend.scm.azurewebsites.net
-      
-      echo "---------------------------------"
-      echo ">>> 3. Force Azure Internal DNS (168.63.129.16)"
-      # 이게 성공하면(Address: 172.16.0.6), Azure 설정은 완벽한데 VM이 엉뚱한 DNS를 쓰는 겁니다.
-      nslookup codify-functions-backend.scm.azurewebsites.net 168.63.129.16
-    displayName: "Debug DNS Configuration"
-  # 1. 배포 파일 압축
+  # 1. 배포 파일 압축 (빌드된 결과물을 zip으로 패키징)
   - task: ArchiveFiles@2
     displayName: "Archive files"
     inputs:
@@ -29,21 +16,16 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 2. [검증] DNS 조회 테스트
-  # VM이 재부팅되면서 Azure DNS 설정을 받아왔다면,
-  # 여기서 무조건 'Address: 172.16.0.6'이 떠야 합니다.
+  # 2. 정석 DNS 설정을 이용한 Curl 배포
   - script: |
-      echo ">>> Checking DNS Resolution..."
-      nslookup codify-functions-backend.scm.azurewebsites.net
-    displayName: "Verify DNS (Must show 172.16.0.6)"
-
-  # 3. [배포] 정석 배포 (도메인 사용)
-  # DNS가 정상이면 --resolve 옵션 없이도 배포가 성공합니다.
-  - script: |
-      echo "Deploying to: https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
+      # 방금 nslookup으로 확인 성공한 '진짜 주소'를 사용합니다.
+      # 이제 172.16.0.6으로 자동 연결됩니다.
+      DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/zipdeploy"
+      
+      echo "Deploying to: $DEPLOY_URL"
       
       curl -f -v -X POST -u "$(DEPLOY_USER):$(DEPLOY_PWD)" \
       -H "Content-Type: application/zip" \
       --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
-      "https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
-    displayName: "Deploy to Azure Functions"
+      "$DEPLOY_URL"
+    displayName: "Deploy to Azure Functions (Private Link Success)"
