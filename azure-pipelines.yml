@@ -16,7 +16,7 @@ steps:
       replaceExistingArchive: true
 
   - script: | 
-      DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/zipdeploy"
+      DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/zipdeploy"
       
       echo "Deploying to Private Endpoint (172.16.0.6)..."
       
