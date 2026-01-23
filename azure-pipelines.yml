@@ -29,5 +29,5 @@ steps:
     displayName: "Deploy to Azure Functions (Final)"
     env:
       # Secret 변수를 스크립트에서 쓸 수 있도록 환경 변수로 매핑
-      USER: $(DEPLOY_USER)
-      PASS: $(DEPLOY_PWD)
+      USER: '$(DEPLOY_USER)'
+      PASS: '$(DEPLOY_PWD)'
