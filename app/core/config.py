@@ -30,6 +30,9 @@ class Config:
     AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY", "")
     AZURE_STORAGE_CONTAINER_NAME = os.getenv("AZURE_STORAGE_CONTAINER_NAME", "images")
 
+    # KMA Weather API Configuration
+    KMA_API_KEY = os.getenv("KMA_API_KEY", "")
+
     @property
     def DATABASE_URL(self):
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
@@ -66,4 +69,9 @@ class Config:
             )
             print(
                 "       Please set AZURE_STORAGE_ACCOUNT_NAME in .env file or environment variables."
+            )
+        if not Config.KMA_API_KEY:
+            print("Warning: KMA_API_KEY environment variable is not set.")
+            print(
+                "       Please set KMA_API_KEY in .env file or environment variables."
             )
