@@ -23,5 +23,5 @@ steps:
   - script: |
       curl -X POST -u "$(DEPLOY_USER):$(DEPLOY_PWD)" \
       --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
-      "https://codify-functions-backend-abb5b4b.scm.azurewebsites.net/api/zipdeploy"
+      "https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
     displayName: "Deploy to Azure Functions using Curl"
