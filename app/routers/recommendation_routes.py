@@ -42,6 +42,7 @@ def recommend_outfit(
     season: Optional[str] = Query(None),
     formality: Optional[float] = Query(None),
     use_llm: bool = Query(True, description="LLM 사용 여부 (기본값: true, Azure OpenAI 사용)"),
+    user_request: Optional[str] = Query(None, description="사용자 요청 (날씨/TPO 정보 포함 가능)"),
 ):
     try:
         all_items = wardrobe_manager.load_items()
@@ -110,7 +111,7 @@ def recommend_outfit(
         # Use Azure OpenAI (via LangGraph workflow) for recommendation
         if use_llm:
             try:
-                recommendations = recommender.recommend_with_llm(tops, bottoms, count)
+                recommendations = recommender.recommend_with_llm(tops, bottoms, count, user_request=user_request)
                 if recommendations:
                     return create_success_response(
                         {"outfits": recommendations},

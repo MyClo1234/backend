@@ -27,6 +27,9 @@ class Config:
     AZURE_STORAGE_ACCOUNT_KEY = os.getenv("AZURE_STORAGE_ACCOUNT_KEY", "")
     AZURE_STORAGE_CONTAINER_NAME = os.getenv("AZURE_STORAGE_CONTAINER_NAME", "images")
 
+    # Weather API Configuration (기상청 중기예보 조회서비스)
+    KMA_SERVICE_KEY = os.getenv("KMA_SERVICE_KEY", "")  # URL-encoded 키를 저장
+
     @property
     def DATABASE_URL(self):
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"

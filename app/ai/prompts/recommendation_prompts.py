@@ -62,11 +62,29 @@ def build_tpo_recommendation_prompt(
     """
     weather_text = ""
     if weather_info:
+        # 확장된 weather_info 포맷 지원
+        # {source, region, date, temperature: {min, max}, delta_days}
+        temp_info = weather_info.get('temperature', {})
+        if isinstance(temp_info, dict):
+            min_temp = temp_info.get('min', 'N/A')
+            max_temp = temp_info.get('max', 'N/A')
+            temp_str = f"{min_temp}°C ~ {max_temp}°C" if min_temp != 'N/A' and max_temp != 'N/A' else 'N/A'
+        else:
+            temp_str = str(temp_info)
+        
+        region = weather_info.get('region', 'N/A')
+        date = weather_info.get('date', 'N/A')
+        source = weather_info.get('source', 'N/A')
+        delta_days = weather_info.get('delta_days')
+        
+        delta_text = f" ({delta_days}일 후 예보)" if delta_days is not None else ""
+        
         weather_text = f"""
 Weather Information:
-- Temperature: {weather_info.get('temperature', 'N/A')}°C
-- Condition: {weather_info.get('condition', 'N/A')}
-- Precipitation: {weather_info.get('precipitation', 'N/A')}
+- Source: {source}{delta_text}
+- Region: {region}
+- Date: {date}
+- Temperature: {temp_str}
 """
     
     return f"""Recommend {count} best outfit(s) based on the user's request and current weather.

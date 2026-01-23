@@ -25,6 +25,8 @@ class RecommendationState(TypedDict):
     metadata: Dict[str, Any]
     user_request: Optional[str]
     weather_info: Optional[Dict[str, Any]]
+    weather_query: Optional[Dict[str, Any]]  # {region_text: str, target_date: str, missing: List[str]}
+    clarifying_question: Optional[str]  # 지역이 애매할 때 사용자에게 되묻기 질문
     count: int
 
 

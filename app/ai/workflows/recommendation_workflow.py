@@ -12,6 +12,15 @@ from app.ai.nodes.recommendation_nodes import (
     fallback_recommendation_node,
     should_use_llm
 )
+from app.ai.nodes.weather_nodes import (
+    extract_weather_query_node,
+    normalize_region_node,
+    select_tmfc_node,
+    fetch_weather_node,
+    parse_weather_node,
+    should_fetch_weather,
+    should_continue_after_normalize
+)
 
 
 def create_recommendation_workflow() -> StateGraph:
@@ -19,6 +28,14 @@ def create_recommendation_workflow() -> StateGraph:
     workflow = StateGraph(RecommendationState)
     
     # 노드 추가
+    # 날씨 노드들 (START 직후)
+    workflow.add_node("extract_weather_query", extract_weather_query_node)
+    workflow.add_node("normalize_region", normalize_region_node)
+    workflow.add_node("select_tmfc", select_tmfc_node)
+    workflow.add_node("fetch_weather", fetch_weather_node)
+    workflow.add_node("parse_weather", parse_weather_node)
+    
+    # 기존 노드들
     workflow.add_node("generate_candidates", generate_candidates_node)
     workflow.add_node("prepare_llm_input", prepare_llm_input_node)
     workflow.add_node("call_llm", call_llm_node)
@@ -26,7 +43,39 @@ def create_recommendation_workflow() -> StateGraph:
     workflow.add_node("fallback", fallback_recommendation_node)
     
     # 엣지 정의
-    workflow.set_entry_point("generate_candidates")
+    # START → 날씨 정보 추출
+    workflow.set_entry_point("extract_weather_query")
+    
+    # 날씨 정보 추출 후 → 날씨 가져올지 결정
+    workflow.add_conditional_edges(
+        "extract_weather_query",
+        should_fetch_weather,
+        {
+            "fetch": "normalize_region",
+            "skip": "generate_candidates"
+        }
+    )
+    
+    # 지역 정규화 후 → disambiguation 필요 여부 확인
+    workflow.add_conditional_edges(
+        "normalize_region",
+        should_continue_after_normalize,
+        {
+            "continue": "select_tmfc",
+            "clarify": END  # clarifying_question 반환하고 종료
+        }
+    )
+    
+    # tmFc 선택 → 날씨 가져오기
+    workflow.add_edge("select_tmfc", "fetch_weather")
+    
+    # 날씨 가져오기 → 파싱
+    workflow.add_edge("fetch_weather", "parse_weather")
+    
+    # 날씨 파싱 후 → 후보 생성
+    workflow.add_edge("parse_weather", "generate_candidates")
+    
+    # 후보 생성 → LLM 입력 준비
     workflow.add_edge("generate_candidates", "prepare_llm_input")
     
     # 조건부 엣지: 후보가 있으면 LLM 사용, 없으면 폴백
@@ -90,6 +139,8 @@ def recommend_outfits(
         "metadata": {},
         "user_request": user_request,
         "weather_info": weather_info,
+        "weather_query": None,
+        "clarifying_question": None,
         "count": count
     }
     

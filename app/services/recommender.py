@@ -114,7 +114,13 @@ class OutfitRecommender:
         bottom_ids = sorted([b.get("id") for b in bottoms])
         return f"{hash(tuple(top_ids))}_{hash(tuple(bottom_ids))}_{count}"
 
-    def recommend_with_llm(self, tops: List[Dict], bottoms: List[Dict], count: int = 1) -> List[Dict]:
+    def recommend_with_llm(
+        self, 
+        tops: List[Dict], 
+        bottoms: List[Dict], 
+        count: int = 1,
+        user_request: Optional[str] = None
+    ) -> List[Dict]:
         """
         LLM을 사용한 코디 추천 (Azure OpenAI + LangGraph)
         
@@ -122,6 +128,7 @@ class OutfitRecommender:
             tops: 상의 아이템 리스트
             bottoms: 하의 아이템 리스트
             count: 추천 개수
+            user_request: 사용자 요청 (날씨/TPO 정보 포함 가능)
             
         Returns:
             추천 결과 리스트
@@ -152,6 +159,7 @@ class OutfitRecommender:
                 tops=tops,
                 bottoms=bottoms,
                 count=count,
+                user_request=user_request,
                 use_llm=True
             )
             
