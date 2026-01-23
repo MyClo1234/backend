@@ -6,6 +6,19 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
+  - script: |
+      echo ">>> 1. Checking current DNS server..."
+      resolvectl status || cat /etc/resolv.conf
+      
+      echo "---------------------------------"
+      echo ">>> 2. Default Lookup (Likely to fail)"
+      nslookup codify-functions-backend.scm.azurewebsites.net
+      
+      echo "---------------------------------"
+      echo ">>> 3. Force Azure Internal DNS (168.63.129.16)"
+      # 이게 성공하면(Address: 172.16.0.6), Azure 설정은 완벽한데 VM이 엉뚱한 DNS를 쓰는 겁니다.
+      nslookup codify-functions-backend.scm.azurewebsites.net 168.63.129.16
+    displayName: "Debug DNS Configuration"
   # 1. 배포 파일 압축
   - task: ArchiveFiles@2
     displayName: "Archive files"
