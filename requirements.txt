@@ -196,3 +196,4 @@ xxhash==3.6.0
     # via langgraph
 zstandard==0.25.0
     # via langsmith
+azure-functions>=1.18.0,<2.0.0
