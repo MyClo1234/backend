@@ -18,8 +18,11 @@ steps:
       .venv/bin/python -m pip install -U pip
       .venv/bin/python -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
 
-      echo "Installed packages sample:"
-      ls -al .python_packages/lib/site-packages | head
+      echo "Installed packages count:"
+      find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | wc -l
+
+      echo "Sample entries:"
+      find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
     displayName: "Install dependencies into .python_packages"
 
   # ✅ (강추) zip에 필요한 파일/폴더가 있는지 미리 확인
