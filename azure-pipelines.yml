@@ -16,15 +16,21 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 2. Curl을 이용한 배포 (DNS 강제 지정 옵션 추가)
-  # sudo 권한 문제 없이, 방금 설정한 IP(172.16.0.5)로 직행하여 배포합니다.
+  # 2. DNS 조회 테스트 (검증용)
+  # hosts 파일이 깨끗하므로, 여기서 172.16.0.6이 나와야 정상입니다.
+  - script: |
+      echo ">>> Verifying DNS Lookup..."
+      echo "Looking for: codify-functions-backend.scm.azurewebsites.net"
+      nslookup codify-functions-backend.scm.azurewebsites.net
+    displayName: "Verify DNS Resolution"
+
+  # 3. 배포 실행 (정석 방법)
+  # --resolve(하드코딩) 없이 도메인으로 자연스럽게 찾아갑니다.
   - script: |
       echo "Deploying to: https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
       
-      # --resolve 도메인:포트:IP 옵션 사용
       curl -f -v -X POST -u "$(DEPLOY_USER):$(DEPLOY_PWD)" \
-      --resolve codify-functions-backend.scm.azurewebsites.net:443:172.16.0.5 \
       -H "Content-Type: application/zip" \
       --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
       "https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
-    displayName: "Deploy to Azure Functions (Resolved IP)"
+    displayName: "Deploy to Azure Functions"
