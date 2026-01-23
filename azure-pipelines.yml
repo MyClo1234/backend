@@ -6,13 +6,15 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
+  # ✅ 핵심: requirements를 zip에 포함될 .python_packages로 설치
   - script: |
-      echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
-      echo "Build.SourcesDirectory=$(Build.SourcesDirectory)"
-      pwd
-      ls -al
-      find . -maxdepth 3 -type f -name "host.json" -o -name "function_app.py" -o -name "requirements.txt"
-    displayName: "Debug: list workspace"
+      set -euo pipefail
+      python --version
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+      echo "Installed packages count:"
+      ls -al .python_packages/lib/site-packages | head
+    displayName: "Install dependencies into .python_packages"
 
   - task: ArchiveFiles@2
     displayName: "Archive function app"
