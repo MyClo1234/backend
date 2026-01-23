@@ -6,16 +6,18 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
-  # ✅ 핵심: venv로 PEP 668 회피 + .python_packages에 의존성 설치
+  # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
   - script: |
       set -euo pipefail
       python3 --version
 
-      # venv 생성 (시스템 python/pip 건드리지 않음)
       python3 -m venv .venv
-
-      # venv의 pip 사용
       .venv/bin/python -m pip install -U pip
+
+      # 깨끗하게 재설치 (캐시/잔재 방지)
+      rm -rf .python_packages
+      mkdir -p .python_packages/lib/site-packages
+
       .venv/bin/python -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
 
       echo "Installed packages count:"
@@ -25,7 +27,7 @@ steps:
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
     displayName: "Install dependencies into .python_packages"
 
-  # ✅ (강추) zip에 필요한 파일/폴더가 있는지 미리 확인
+  # 2) zip 전에 필수 파일 존재 체크
   - script: |
       set -euo pipefail
       test -f host.json
@@ -35,6 +37,7 @@ steps:
       echo "OK: host.json/function_app.py/requirements.txt/.python_packages exist"
     displayName: "Verify workspace before zip"
 
+  # 3) zip 만들기 (repo 루트 기준)
   - task: ArchiveFiles@2
     displayName: "Archive function app"
     inputs:
@@ -44,12 +47,16 @@ steps:
       archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # ✅ (선택) zip에 .python_packages가 실제로 포함됐는지 확인
+  # 4) zip 안에 실제 포함됐는지 확인
+  # ⚠️ head 때문에 141 나는 문제 방지: sed -n 사용
   - script: |
       set -euo pipefail
-      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "host.json|function_app.py|requirements.txt|\.python_packages" | head -n 50
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" \
+        | grep -E "host.json|function_app.py|requirements.txt|\.python_packages" \
+        | sed -n '1,80p'
     displayName: "Verify zip contents"
 
+  # 5) OneDeploy로 배포
   - script: |
       set -euo pipefail
 
