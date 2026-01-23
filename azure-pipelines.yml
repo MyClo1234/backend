@@ -9,9 +9,9 @@ steps:
   # ✅ 핵심: requirements를 zip에 포함될 .python_packages로 설치
   - script: |
       set -euo pipefail
-      python --version
-      python -m pip install --upgrade pip
-      python -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+      python3 --version
+      python3 -m pip install --upgrade pip
+      python3 -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
       echo "Installed packages count:"
       ls -al .python_packages/lib/site-packages | head
     displayName: "Install dependencies into .python_packages"
