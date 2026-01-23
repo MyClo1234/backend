@@ -6,7 +6,6 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
-  # 1. 배포 파일 압축 (빌드된 결과물을 zip으로 패키징)
   - task: ArchiveFiles@2
     displayName: "Archive files"
     inputs:
@@ -16,16 +15,19 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 2. 정석 DNS 설정을 이용한 Curl 배포
   - script: |
-      # 방금 nslookup으로 확인 성공한 '진짜 주소'를 사용합니다.
-      # 이제 172.16.0.6으로 자동 연결됩니다.
+      # 이제 DNS는 완벽하니 인증만 정확히 전달하면 됩니다.
       DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/zipdeploy"
       
-      echo "Deploying to: $DEPLOY_URL"
+      echo "Starting deployment to 172.16.0.6..."
       
-      curl -f -v -X POST -u "$(DEPLOY_USER):$(DEPLOY_PWD)" \
+      # 환경 변수로 매핑된 값을 사용하여 인증 수행
+      curl -f -v -X POST -u "$USER:$PASS" \
       -H "Content-Type: application/zip" \
       --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
       "$DEPLOY_URL"
-    displayName: "Deploy to Azure Functions (Private Link Success)"
+    displayName: "Deploy to Azure Functions (Final)"
+    env:
+      # Secret 변수를 스크립트에서 쓸 수 있도록 환경 변수로 매핑
+      USER: $(DEPLOY_USER)
+      PASS: $(DEPLOY_PWD)
