@@ -6,15 +6,31 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
-  # ✅ 핵심: requirements를 zip에 포함될 .python_packages로 설치
+  # ✅ 핵심: venv로 PEP 668 회피 + .python_packages에 의존성 설치
   - script: |
       set -euo pipefail
       python3 --version
-      python3 -m pip install --upgrade pip
-      python3 -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
-      echo "Installed packages count:"
+
+      # venv 생성 (시스템 python/pip 건드리지 않음)
+      python3 -m venv .venv
+
+      # venv의 pip 사용
+      .venv/bin/python -m pip install -U pip
+      .venv/bin/python -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+
+      echo "Installed packages sample:"
       ls -al .python_packages/lib/site-packages | head
     displayName: "Install dependencies into .python_packages"
+
+  # ✅ (강추) zip에 필요한 파일/폴더가 있는지 미리 확인
+  - script: |
+      set -euo pipefail
+      test -f host.json
+      test -f function_app.py
+      test -f requirements.txt
+      test -d .python_packages/lib/site-packages
+      echo "OK: host.json/function_app.py/requirements.txt/.python_packages exist"
+    displayName: "Verify workspace before zip"
 
   - task: ArchiveFiles@2
     displayName: "Archive function app"
@@ -25,12 +41,16 @@ steps:
       archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
       replaceExistingArchive: true
 
+  # ✅ (선택) zip에 .python_packages가 실제로 포함됐는지 확인
+  - script: |
+      set -euo pipefail
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "host.json|function_app.py|requirements.txt|\.python_packages" | head -n 50
+    displayName: "Verify zip contents"
+
   - script: |
       set -euo pipefail
 
-      # ✅ zipdeploy 대신 publish(OneDeploy 계열)로
       DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/publish?type=zip"
-
       echo "Deploy to: $DEPLOY_URL"
 
       curl -f -v -u "${USER}:${PASS}" \
