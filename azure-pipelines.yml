@@ -6,6 +6,14 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
+  - script: |
+      echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
+      echo "Build.SourcesDirectory=$(Build.SourcesDirectory)"
+      pwd
+      ls -al
+      find . -maxdepth 3 -type f -name "host.json" -o -name "function_app.py" -o -name "requirements.txt"
+    displayName: "Debug: list workspace"
+
   - task: ArchiveFiles@2
     displayName: "Archive function app"
     inputs:
