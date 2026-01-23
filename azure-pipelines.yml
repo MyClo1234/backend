@@ -17,7 +17,7 @@ steps:
   - task: ArchiveFiles@2
     displayName: "Archive function app"
     inputs:
-      rootFolderOrFile: '$(System.DefaultWorkingDirectory)/backend'
+      rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
       includeRootFolder: false
       archiveType: 'zip'
       archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
