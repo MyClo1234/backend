@@ -6,4 +6,4 @@ health_router = APIRouter()
 
 @health_router.get("/health")
 def health():
-    return JSONResponse(content={"status": "server is running"})
+    return JSONResponse(content={"status": f"server is running ${datetime.now()}"})
