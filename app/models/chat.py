@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from app.database import Base
 
 
@@ -8,7 +8,7 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
 
     session_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     session_summary = Column(Text, nullable=True)  # Long-term memory
 
     # Relationships

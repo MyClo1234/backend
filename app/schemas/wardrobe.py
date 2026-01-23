@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+from uuid import UUID
 
 
 class ClosetItemBase(BaseModel):
@@ -24,7 +25,7 @@ class ClosetItemUpdate(BaseModel):
 
 class ClosetItemResponse(ClosetItemBase):
     id: int
-    user_id: int
+    user_id: UUID
     image_path: str
 
     class Config:
