@@ -7,9 +7,9 @@ pool:
 
 steps:
   - task: ArchiveFiles@2
-    displayName: "Archive files"
+    displayName: "Archive function app"
     inputs:
-      rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+      rootFolderOrFile: '$(System.DefaultWorkingDirectory)/backend'
       includeRootFolder: false
       archiveType: 'zip'
       archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
