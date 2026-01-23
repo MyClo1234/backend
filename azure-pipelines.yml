@@ -16,19 +16,30 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 2. [진단용] DNS 및 네트워크 확인 (이 로그가 문제 해결의 열쇠입니다)
-  # 빌드 서버가 도메인을 어떤 IP로 해석하는지 확인합니다.
+# 2. [핵심 해결책] 호스트 파일 강제 등록 (DNS 우회)
+  # 빌드 서버가 DNS를 못 찾으므로, 강제로 IP(172.16.0.5)를 알려줍니다.
   - script: |
-      echo ">>> Checking DNS resolution for Azure SCM..."
-      nslookup codify-functions-backend.scm.azurewebsites.net
+      echo ">>> Setting up /etc/hosts for Private Endpoint..."
+      
+      # 1. 기존에 잘못된 설정이 있다면 삭제 (중복 방지)
+      sudo sed -i '/codify-functions-backend/d' /etc/hosts
+      
+      # 2. 진짜 IP(172.16.0.5)에 도메인 2개(메인, SCM)를 매핑하여 등록
+      # 스크린샷에서 확인한 프라이빗 엔드포인트 IP입니다.
+      echo "172.16.0.5 codify-functions-backend.azurewebsites.net" | sudo tee -a /etc/hosts
+      echo "172.16.0.5 codify-functions-backend.scm.azurewebsites.net" | sudo tee -a /etc/hosts
+      
+      echo ">>> /etc/hosts file content:"
+      cat /etc/hosts
+      
       echo "---------------------------------"
-      echo ">>> Checking connection..."
-      curl -I https://codify-functions-backend.scm.azurewebsites.net
-    displayName: "Debug Network & DNS"
-    continueOnError: true # 진단 실패해도 배포 시도는 해보도록 설정
+      echo ">>> Testing connectivity..."
+      # 이제 연결이 성공(200, 301, 401 등)해야 합니다.
+      curl -I https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy -u "$(DEPLOY_USER):$(DEPLOY_PWD)"
+    displayName: "Fix DNS & Test Connection"
 
-  # 3. Curl을 이용한 직접 배포
-  # -H "Content-Type: application/zip" 헤더를 추가하여 서버에 zip 파일임을 명시합니다.
+  # 3. 배포 실행
+  # -f 옵션: 실패 시 확실하게 에러를 뱉도록 설정
   - script: |
       echo "Deploying to: https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
       
@@ -36,4 +47,4 @@ steps:
       -H "Content-Type: application/zip" \
       --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
       "https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
-    displayName: "Deploy to Azure Functions using Curl"
+    displayName: "Deploy to Azure Functions"
