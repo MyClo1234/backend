@@ -12,21 +12,22 @@ steps:
       rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
       includeRootFolder: false
       archiveType: 'zip'
-      archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
       replaceExistingArchive: true
 
   - script: |
-      # 리눅스 환경에서 가장 확률 높은 정석 엔드포인트입니다.
-      DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/zipdeploy"
-      
-      echo "Final attempt to: $DEPLOY_URL"
-      
-      # 인증은 이미 뚫렸으니 주소만 맞으면 202 Accepted가 뜰 겁니다.
+      set -euo pipefail
+
+      # ✅ zipdeploy 대신 publish(OneDeploy 계열)로
+      DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/publish?type=zip"
+
+      echo "Deploy to: $DEPLOY_URL"
+
       curl -f -v -u "${USER}:${PASS}" \
-      -H "Content-Type: application/zip" \
-      --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
-      "$DEPLOY_URL"
-    displayName: "Deploy to Azure Functions (Final Path Try)"
+        -H "Content-Type: application/zip" \
+        --data-binary @"$(Build.ArtifactStagingDirectory)/build.zip" \
+        "$DEPLOY_URL"
+    displayName: "Deploy to Azure Functions (OneDeploy)"
     env:
       USER: '$(DEPLOY_USER)'
       PASS: '$(DEPLOY_PWD)'
