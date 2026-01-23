@@ -15,6 +15,9 @@ class Config:
     AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
     AZURE_OPENAI_MODEL_NAME = os.getenv("AZURE_OPENAI_MODEL_NAME", "gpt-4o")
 
+    # Security
+    SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key-change-in-prod")
+
     # Database Configuration
     POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
