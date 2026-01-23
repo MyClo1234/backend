@@ -1,9 +1,9 @@
 import os
 import json
-import time
-import random
+import uuid as uuid_lib
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from uuid import UUID
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from sqlalchemy.orm import Session
 from app.core.config import Config
@@ -95,19 +95,30 @@ class WardrobeManager:
         image_bytes: bytes,
         original_filename: str,
         attributes: dict,
-        user_id: int,  # Changed to int for FK
+        user_id: UUID,  # Changed to UUID for FK
     ) -> dict:
         if not self.container_client:
             raise Exception("Blob Storage not initialized")
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        milliseconds = int(time.time() * 1000) % 1000
-        random_suffix = random.randint(1000, 9999)
-        base_id = f"attributes_{timestamp}_{milliseconds:03d}_{random_suffix}"
+        # Generate blob path: users/{user_id}/{YMD}/{uuid}.{ext}
+        now = datetime.now()
+        date_str = now.strftime("%Y%m%d")  # YYYYMMDD 형식
+        file_uuid = str(uuid_lib.uuid4())  # 이미지 파일용 UUID
+        
+        # 확장자 추출
+        if original_filename:
+            ext = validate_file_extension(original_filename)
+        else:
+            ext = ".jpg"
+
+        # Blob 경로 생성: users/{user_id}/{YMD}/{uuid}.{ext}
+        blob_path = f"users/{user_id}/{date_str}/{file_uuid}{ext}"
+        
+        # JSON 파일 경로도 동일한 구조로 (확장자만 .json)
+        json_blob_path = f"users/{user_id}/{date_str}/{file_uuid}.json"
 
         # 1. Save JSON to Blob (Legacy/Backup)
-        json_filename = f"{base_id}.json"
-        json_client = self.container_client.get_blob_client(json_filename)
+        json_client = self.container_client.get_blob_client(json_blob_path)
         json_data = json.dumps(attributes, ensure_ascii=False, indent=2)
         json_client.upload_blob(
             json_data,
@@ -116,13 +127,7 @@ class WardrobeManager:
         )
 
         # 2. Save Image to Blob
-        if original_filename:
-            ext = validate_file_extension(original_filename)
-        else:
-            ext = ".jpg"
-
-        image_filename = f"{base_id}{ext}"
-        image_client = self.container_client.get_blob_client(image_filename)
+        image_client = self.container_client.get_blob_client(blob_path)
 
         # Determine content type
         content_type = "image/jpeg"
@@ -148,8 +153,13 @@ class WardrobeManager:
 
         # Create ClosetItem
         # Extract fields safely from attributes
-        category = attributes.get("category", "UNKNOWN")
-        sub_category = attributes.get("sub_category")
+        category_obj = attributes.get("category", {})
+        if isinstance(category_obj, dict):
+            category = category_obj.get("main", "UNKNOWN").upper()
+            sub_category = category_obj.get("sub") or attributes.get("sub_category")
+        else:
+            category = str(category_obj).upper() if category_obj else "UNKNOWN"
+            sub_category = attributes.get("sub_category")
 
         # Parse features (everything else)
         features = attributes.copy()
@@ -188,10 +198,10 @@ class WardrobeManager:
         db.refresh(db_item)
 
         return {
-            "saved_to": json_filename,
+            "saved_to": json_blob_path,
             "image_url": image_url,
             "item_id": db_item.id,  # Return DB ID
-            "blob_name": image_filename,
+            "blob_name": blob_path,
         }
 
 

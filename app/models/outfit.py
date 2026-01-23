@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from app.database import Base
 
 
@@ -19,7 +19,7 @@ class OutfitLog(Base):
     __tablename__ = "outfit_logs"
 
     log_id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     worn_date = Column(Date, nullable=False)
     purpose = Column(String, nullable=True)  # 결혼식, 면접...
     location = Column(String, nullable=True)

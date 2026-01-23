@@ -5,17 +5,18 @@ from app.schemas.user import UserUpdate, UserResponse
 from app.services import user_service
 from app.core.security import ALGORITHM, SECRET_KEY, verify_password
 from jose import JWTError, jwt
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.models.user import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-# 토큰 인증을 위한 스키마
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# Bearer 토큰 인증을 위한 스키마
+security = HTTPBearer()
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    credentials: HTTPAuthorizationCredentials = Depends(security), 
+    db: Session = Depends(get_db)
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -23,6 +24,7 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:

@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
+from uuid import UUID
 from app.models.user import User
 from app.schemas.user import UserUpdate
 
 
-def update_user_profile(db: Session, user_id: int, update_data: UserUpdate):
+def update_user_profile(db: Session, user_id: UUID, update_data: UserUpdate):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         return None
