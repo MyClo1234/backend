@@ -55,37 +55,33 @@ git checkout -b feat/#이슈번호-설명
 
 **1. 필수 도구 설치**
 
-**macOS:**
+- **Python 3.12.10** (필수)
+- **Azure Functions Core Tools v4 (func)**
+- **uv** (Python 패키지 매니저)
+
+**2. 실행 (로컬 - uv 사용 권장)**
+
+이 프로젝트는 `uv`를 통해 의존성을 관리합니다.
+
 ```bash
-brew tap azure/functions
-brew install azure-functions-core-tools@4
+# 1. 저장소 클론 및 이동
+git clone <repository-url>
+cd backend
+
+# 2. 가상환경 생성 (Python 3.12.10)
+# .python-version 파일에 명시된 버전을 사용하여 .venv를 생성합니다.
+uv venv
+
+# 3. 의존성 설치
+# 생성된 가상환경에 필요한 패키지들을 동기화합니다.
+uv sync
+
+# 4. Azure Function 실행
+# uv run을 사용하면 가상환경을 자동으로 활성화하여 실행합니다.
+uv run func start
 ```
 
-**Windows:**
-```powershell
-winget install Microsoft.Azure.FunctionsCoreTools
-# 또는 npm 사용 시: npm i -g azure-functions-core-tools@4 --unsafe-perm true
-```
-
-**2. 실행 (로컬)**
-
-**macOS/Linux:**
-```bash
-# 가상 환경 활성화
-source .venv/bin/activate
-
-# 함수 실행
-func start
-```
-
-**Windows (PowerShell):**
-```powershell
-# 가상 환경 활성화
-.venv\Scripts\Activate
-
-# 함수 실행
-func start
-```
+**서버 주소**: http://localhost:7071
 
 - **서버 주소**: http://localhost:7071
 - **API 문서**: http://localhost:7071/docs
@@ -201,10 +197,11 @@ backend/
 
 ### 필수 요구사항
 
-- Python 3.11 이상
+- **Python 3.12.10** (필수: `.python-version` 파일 참조)
 - Azure OpenAI API 키 및 엔드포인트
+- Azure Functions Core Tools
 
-### 설치 방법
+### 설치 방법 (uv 사용 권장)
 
 1. **저장소 클론**
    ```bash
@@ -212,34 +209,18 @@ backend/
    cd backend
    ```
 
-2. **가상 환경 생성 및 활성화**
+2. **uv 설치** (아직 설치하지 않은 경우)
    ```bash
-   # Windows
-   python -m venv venv
-   venv\Scripts\activate
-
-   # macOS/Linux
-   python -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **의존성 설치**
-
-   **pip 사용:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-   **uv 사용 (권장):**
-   ```bash
-   # uv 설치 (아직 설치하지 않은 경우)
    # Windows (PowerShell)
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    
    # macOS/Linux
    curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
    
-   # 의존성 설치
+3. **환경 설정 및 의존성 설치**
+   ```bash
+   # uv가 Python 3.12.10을 다운로드하고 가상환경을 구성합니다.
    uv sync
    ```
 
@@ -276,27 +257,15 @@ AZURE_STORAGE_CONTAINER_NAME=images
 
 ### 서버 실행
 
-**표준 Python 사용:**
+**Azure Functions 실행 (권장):**
 ```bash
-python -m app.main
+uv run func start
 ```
 
-또는:
-
+**표준 Uvicorn 실행 (FastAPI 개발 모드):**
+Azure Functions 환경이 아닌 순수 FastAPI로 테스트할 때:
 ```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**uv 사용:**
-```bash
-# uv로 서버 실행 (의존성 자동 관리)
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-또는:
-
-```bash
-uv run python -m app.main
 ```
 
 서버가 실행되면 다음 주소에서 접근할 수 있습니다:
