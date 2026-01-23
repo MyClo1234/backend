@@ -1,69 +1,71 @@
-import uuid
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.routers.user_routes import get_current_user
+from app.models.user import User
 from app.services.extractor import extractor
 from app.services.wardrobe_manager import wardrobe_manager
-from app.models.schemas import ExtractionResponse
+from app.models.schemas import ExtractionResponse, ExtractionUrlResponse
 from app.utils.validators import validate_uploaded_file
 from app.utils.response_helpers import create_success_response, handle_route_exception
 
 extraction_router = APIRouter()
 
 
+from typing import List
+
+
 @extraction_router.post(
     "/extract",
-    response_model=ExtractionResponse,
-    summary="이미지 속성 추출",
-    description="옷 이미지를 업로드하여 카테고리, 색상, 패턴, 소재 등의 속성을 자동으로 추출합니다. "
-                "이미지는 Azure Blob Storage에 저장되며, 경로 형식은 `users/{user_id}/{yyyyMMdd}/{uuid}.{ext}`입니다."
+    response_model=List[ExtractionUrlResponse],
+    summary="이미지 속성 추출 및 저장 (다중 업로드)",
+    description="여러 장의 옷 이미지를 한 번에 업로드하여 속성을 추출하고 내 옷장에 저장합니다. (로그인 필요)",
 )
 async def extract(
-    image: UploadFile = File(..., description="업로드할 옷 이미지 파일 (jpg, png, gif, webp)"),
-    user_id: str = Form(..., description="사용자 UUID (예: 550e8400-e29b-41d4-a716-446655440000)")
+    images: List[UploadFile] = File(..., description="업로드할 옷 이미지 파일 목록"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    """Extract clothing attributes from uploaded image
-    
-    - **image**: 업로드할 이미지 파일 (필수)
-    - **user_id**: 사용자 UUID 형식의 고유 식별자 (필수)
-    
-    이미지는 Azure Blob Storage에 저장되며, 저장 경로는 `users/{user_id}/{yyyyMMdd}/{uuid}.{ext}` 형식입니다.
     """
+    Extract and save clothing attributes (Batch)
+
+    - **images**: 업로드할 이미지 파일 목록 (필수)
+    - **Authorization**: Bearer Token (필수)
+    """
+    results = []
 
     try:
-        # UUID 형식 검증
-        try:
-            uuid.UUID(user_id)
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid UUID format for user_id: {user_id}"
+        for image in images:
+            # Read contents first for size validation
+            contents = await image.read()
+
+            # File validation (filename, extension, MIME type, size)
+            validate_uploaded_file(
+                filename=image.filename,
+                content_type=image.content_type,
+                file_size=len(contents),
             )
-        
-        # Read contents first for size validation
-        contents = await image.read()
 
-        # File validation (filename, extension, MIME type, size)
-        validate_uploaded_file(
-            filename=image.filename,
-            content_type=image.content_type,
-            file_size=len(contents),
-        )
+            # Sync extraction call
+            attributes = extractor.extract(contents)
 
-        # Sync extraction call
-        attributes = extractor.extract(contents)
+            # Save results with user_id (ORM + Blob)
+            save_result = wardrobe_manager.save_item(
+                db=db,
+                image_bytes=contents,
+                original_filename=image.filename,
+                attributes=attributes,
+                user_id=current_user.id,
+            )
 
-        # Save results with user_id
-        save_result = wardrobe_manager.save_item(contents, image.filename, attributes, user_id=user_id)
+            results.append(
+                ExtractionUrlResponse(
+                    image_url=save_result["image_url"],
+                    item_id=str(save_result["item_id"]),
+                )
+            )
 
-        return create_success_response(
-            {
-                "attributes": attributes,
-                "saved_to": save_result["saved_to"],
-                "image_url": save_result["image_url"],
-                "item_id": save_result["item_id"],
-                "blob_name": save_result.get("blob_name"),  # Azure Blob Storage 경로
-                "storage_type": save_result.get("storage_type", "local"),  # 저장 타입
-            }
-        )
+        return results
 
     except HTTPException:
         raise
