@@ -16,16 +16,16 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 2. DNS 연결 확인 (검증용)
-  # VNet Link가 'Completed' 상태이므로, 여기서 '172.16.0.6'이 나와야 정상입니다.
+  # 2. [검증] DNS 조회 테스트
+  # VM이 재부팅되면서 Azure DNS 설정을 받아왔다면,
+  # 여기서 무조건 'Address: 172.16.0.6'이 떠야 합니다.
   - script: |
-      echo ">>> Verifying DNS Resolution..."
+      echo ">>> Checking DNS Resolution..."
       nslookup codify-functions-backend.scm.azurewebsites.net
-    displayName: "Verify DNS"
+    displayName: "Verify DNS (Must show 172.16.0.6)"
 
-  # 3. 배포 실행 (Standard)
-  # --resolve 옵션 없이 도메인만으로 배포합니다. 
-  # VNet Link 덕분에 VM이 알아서 172.16.0.6을 찾아갑니다.
+  # 3. [배포] 정석 배포 (도메인 사용)
+  # DNS가 정상이면 --resolve 옵션 없이도 배포가 성공합니다.
   - script: |
       echo "Deploying to: https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
       
