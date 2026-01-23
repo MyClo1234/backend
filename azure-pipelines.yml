@@ -15,19 +15,14 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  - script: |
-      # 이제 DNS는 완벽하니 인증만 정확히 전달하면 됩니다.
+  - script: | 
       DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/zipdeploy"
       
-      echo "Starting deployment to 172.16.0.6..."
+      echo "Deploying to Private Endpoint (172.16.0.6)..."
       
-      # 환경 변수로 매핑된 값을 사용하여 인증 수행
-      curl -f -v -X POST -u "$USER:$PASS" \
-      -H "Content-Type: application/zip" \
-      --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
-      "$DEPLOY_URL"
-    displayName: "Deploy to Azure Functions (Final)"
+      # 모든 옵션을 한 줄에 몰아서 실행 (줄바꿈 오류 방지)
+      curl -f -v -u "$USER:$PASS" -H "Content-Type: application/zip" --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" "$DEPLOY_URL"
+    displayName: "Deploy to Azure Functions (Final Success)"
     env:
-      # Secret 변수를 스크립트에서 쓸 수 있도록 환경 변수로 매핑
       USER: '$(DEPLOY_USER)'
       PASS: '$(DEPLOY_PWD)'
