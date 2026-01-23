@@ -2,9 +2,10 @@
 
 trigger:
 - main
+- dev
 
 pool:
-  vmImage: codify-self-host-ci-cd
+  name: 'codify-self-host-ci-cd'
 
 steps:
   # 1. 배포 파일 압축 (직접 zip 파일 생성)
