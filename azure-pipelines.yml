@@ -8,12 +8,7 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
-  # 1. 의존성 설치
-  - script: |
-      pip install -r requirements.txt
-    displayName: "Install dependencies"
-
-  # 2. 배포 파일 압축 (직접 zip 파일 생성)
+  # 1. 배포 파일 압축 (직접 zip 파일 생성)
   - task: ArchiveFiles@2
     displayName: "Archive files"
     inputs:
@@ -23,7 +18,7 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 3. Curl을 이용한 직접 배포 (권한 우회 핵심!)
+  # 2. Curl을 이용한 직접 배포 (권한 우회 핵심!)
   # 방금 등록한 변수(DEPLOY_USER, DEPLOY_PWD)를 사용해 로그인하고 파일을 전송합니다.
   - script: |
       curl -X POST -u "$(DEPLOY_USER):$(DEPLOY_PWD)" \
