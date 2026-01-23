@@ -33,47 +33,32 @@ async def extract(
     - **Authorization**: Bearer Token (필수)
     """
     logger.info("=== Extract Request Started ===")
-    print("=== Extract Request Started ===")
     logger.info(f"User authenticated: ID={current_user.id}, Username={current_user.user_name}")
-    print(f"User authenticated: ID={current_user.id}, Username={current_user.user_name}")
-    logger.info(f"Image filename: {image.filename}")
-    print(f"Image filename: {image.filename}")
-    logger.info(f"Image content_type: {image.content_type}")
-    print(f"Image content_type: {image.content_type}")
+    logger.info(f"Image filename: {image.filename}, content_type: {image.content_type}")
     
     try:
         # Read contents first for size validation
-        logger.info("Reading image file contents...")
-        print("Reading image file contents...")
         contents = await image.read()
         file_size_mb = len(contents) / 1024 / 1024
         logger.info(f"Image file size: {len(contents)} bytes ({file_size_mb:.2f} MB)")
-        print(f"Image file size: {len(contents)} bytes ({file_size_mb:.2f} MB)")
 
         # File validation (filename, extension, MIME type, size)
-        logger.info("Validating uploaded file...")
-        print("Validating uploaded file...")
         validate_uploaded_file(
             filename=image.filename,
             content_type=image.content_type,
             file_size=len(contents),
         )
         logger.info("File validation passed")
-        print("File validation passed")
 
         # Sync extraction call
         logger.info("Starting attribute extraction...")
-        print("Starting attribute extraction...")
         attributes = extractor.extract(contents)
         category_main = attributes.get('category', {}).get('main', 'N/A') if isinstance(attributes.get('category'), dict) else 'N/A'
         logger.info(f"Attribute extraction completed. Category: {category_main}")
-        print(f"Attribute extraction completed. Category: {category_main}")
         logger.debug(f"Extracted attributes keys: {list(attributes.keys())}")
-        print(f"Extracted attributes keys: {list(attributes.keys())}")
 
         # Save results with user_id (ORM + Blob)
         logger.info(f"Saving item to database and blob storage for user_id={current_user.id}...")
-        print(f"Saving item to database and blob storage for user_id={current_user.id}...")
         save_result = wardrobe_manager.save_item(
             db=db,
             image_bytes=contents,
@@ -82,15 +67,12 @@ async def extract(
             user_id=current_user.id,
         )
         logger.info(f"Item saved successfully. Item ID: {save_result.get('item_id')}, Image URL: {save_result.get('image_url')}")
-        print(f"Item saved successfully. Item ID: {save_result.get('item_id')}, Image URL: {save_result.get('image_url')}")
 
         # Determine storage type
         storage_type = "blob_storage" if save_result.get("blob_name") else "local"
         logger.info(f"Storage type: {storage_type}")
-        print(f"Storage type: {storage_type}")
 
         logger.info("=== Extract Request Completed Successfully ===")
-        print("=== Extract Request Completed Successfully ===")
         # Return single object with attributes
         return ExtractionResponse(
             success=True,
@@ -103,12 +85,8 @@ async def extract(
         )
 
     except HTTPException as e:
-        error_msg = f"HTTPException raised: {e.status_code} - {e.detail}"
-        print(f"ERROR: {error_msg}")
-        logger.error(error_msg)
+        logger.error(f"HTTPException raised: {e.status_code} - {e.detail}")
         raise
     except Exception as e:
-        error_msg = f"Unexpected error during extraction: {type(e).__name__}: {str(e)}"
-        print(f"ERROR: {error_msg}")
-        logger.error(error_msg, exc_info=True)
+        logger.error(f"Unexpected error during extraction: {type(e).__name__}: {str(e)}", exc_info=True)
         raise handle_route_exception(e)

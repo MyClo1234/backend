@@ -192,9 +192,7 @@ class WardrobeManager:
         db.refresh(db_item)
 
         return {
-            "image_url": image_url,
-            "item_id": db_item.id,  # Return DB ID
-            "blob_name": image_filename,
+            "success": "success"
         }
 
 
