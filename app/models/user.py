@@ -1,4 +1,6 @@
+import uuid
 from sqlalchemy import Column, Integer, String, DECIMAL, DateTime, text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -6,7 +8,7 @@ from app.database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     user_name = Column(String, nullable=False)
     body_shape = Column(String, nullable=True)
     height = Column(DECIMAL(5, 2), nullable=True)  # cm

@@ -1,4 +1,5 @@
 from pydantic import BaseModel, field_validator, Field
+from uuid import UUID
 
 
 # 회원가입 시 받을 데이터 규격
@@ -42,7 +43,7 @@ class UserUpdate(BaseModel):
 
 # API 응답으로 보낼 데이터 규격
 class UserResponse(BaseModel):
-    id: int
+    id: UUID
     username: str = Field(validation_alias="user_name")
     age: int | None = None
     height: float | None = None

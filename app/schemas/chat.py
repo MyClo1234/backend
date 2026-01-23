@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+from uuid import UUID
 
 
 class ChatMessageBase(BaseModel):
@@ -29,7 +30,7 @@ class ChatSessionCreate(ChatSessionBase):
 
 class ChatSessionResponse(ChatSessionBase):
     session_id: int
-    user_id: int
+    user_id: UUID
     messages: List[ChatMessageResponse] = []
 
     class Config:
