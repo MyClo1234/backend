@@ -1,5 +1,3 @@
-# azure-pipelines.yml
-
 trigger:
 - main
 - dev
@@ -8,7 +6,7 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
-  # 1. 배포 파일 압축 (직접 zip 파일 생성)
+  # 1. 배포 파일 압축
   - task: ArchiveFiles@2
     displayName: "Archive files"
     inputs:
@@ -18,13 +16,24 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 2. Curl을 이용한 직접 배포
+  # 2. [진단용] DNS 및 네트워크 확인 (이 로그가 문제 해결의 열쇠입니다)
+  # 빌드 서버가 도메인을 어떤 IP로 해석하는지 확인합니다.
+  - script: |
+      echo ">>> Checking DNS resolution for Azure SCM..."
+      nslookup codify-functions-backend.scm.azurewebsites.net
+      echo "---------------------------------"
+      echo ">>> Checking connection..."
+      curl -I https://codify-functions-backend.scm.azurewebsites.net
+    displayName: "Debug Network & DNS"
+    continueOnError: true # 진단 실패해도 배포 시도는 해보도록 설정
+
+  # 3. Curl을 이용한 직접 배포
+  # -H "Content-Type: application/zip" 헤더를 추가하여 서버에 zip 파일임을 명시합니다.
   - script: |
       echo "Deploying to: https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
       
-      # -f: HTTP 에러 발생 시 스크립트 실패 처리
-      # -v: 상세 로그 출력 (디버깅용)
       curl -f -v -X POST -u "$(DEPLOY_USER):$(DEPLOY_PWD)" \
+      -H "Content-Type: application/zip" \
       --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
       "https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
     displayName: "Deploy to Azure Functions using Curl"
