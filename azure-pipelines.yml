@@ -15,17 +15,19 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  - script: | 
+  - script: |
       DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/zipdeploy"
       
-      echo "Deploying to Private Endpoint (172.16.0.6)..."
+      echo "Starting deployment to Private Endpoint (172.16.0.6)..."
       
-      # -u 옵션 대신 Header에 직접 인코딩하여 넣거나, 변수 처리를 강화합니다.
-      curl -f -v --user "$USER:$PASS" \
+      # 변수 치환을 방지하기 위해 $USER 대신 내부 환경 변수 이름을 직접 사용하거나
+      # 따옴표 처리를 강화합니다.
+      curl -f -v -u "${USER}:${PASS}" \
       -H "Content-Type: application/zip" \
       --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
       "$DEPLOY_URL"
     displayName: "Deploy to Azure Functions (Final Success)"
     env:
-      USER: '$(DEPLOY_USER)'
-      PASS: '$(DEPLOY_PWD)'
+      # DEPLOY_USER 내의 '$' 기호가 Bash에 의해 해석되지 않도록 처리됩니다.
+      USER: $(DEPLOY_USER)
+      PASS: $(DEPLOY_PWD)
