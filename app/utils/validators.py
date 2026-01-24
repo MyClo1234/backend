@@ -166,7 +166,9 @@ def validate_file_extension(filename: str) -> str:
     ext_lower = ext.lower()
     
     if ext_lower not in Config.ALLOWED_EXTENSIONS:
-        # 기본값으로 .jpg 반환 (wardrobe_manager에서 사용)
-        return '.jpg'
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(sorted(Config.ALLOWED_EXTENSIONS))}",
+        )
     
     return ext_lower
