@@ -96,6 +96,7 @@ func start
 - [기술 스택](#기술-스택)
 - [프로젝트 구조](#프로젝트-구조)
 - [시작하기](#시작하기)
+- [VS Code 디버깅](guides/vscode-debugging.md)
 - [환경 변수 설정](#환경-변수-설정)
 - [API 엔드포인트](#api-엔드포인트)
 - [LangGraph 워크플로우 구조](#langgraph-워크플로우-구조)

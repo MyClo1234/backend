@@ -1,3 +1,7 @@
 {
-    "recommendations": ["ms-python.black-formatter"]
+    "recommendations": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-azuretools.vscode-azurefunctions"
+    ]
 }
