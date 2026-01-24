@@ -18,7 +18,7 @@
 
 - **프로젝트명**: AI Stylist Agent Backend
 - **프레임워크**: FastAPI
-- **Python 버전**: >= 3.11
+- **Python 버전**: >= 3.12 (권장: 3.12.10)
 - **주요 기능**: 옷 이미지 특징 추출 및 코디 추천
 
 ---
@@ -61,6 +61,11 @@ backend/
 │   │   ├── json_parser.py
 │   │   └── validators.py
 │   └── main.py           # 애플리케이션 진입점
+├── docs/                 # 프로젝트 문서
+│   ├── index.md
+│   ├── development/
+│   ├── architecture/
+│   └── api/
 ├── extracted_attributes/  # 추출된 이미지 저장 디렉토리
 ├── .env                  # 환경 변수 (gitignore)
 ├── .env.example          # 환경 변수 예제
@@ -434,7 +439,7 @@ class Config:
 - 라우터는 최소한의 로직만 포함 (검증, 호출, 응답 변환)
 - 예: 규칙 기반 추천 로직은 `recommender._rule_based_recommendation()`으로 통합
 
-### 테스트 (향후)
+### 테스트
 - 단위 테스트 작성 권장
 - 테스트 파일은 `tests/` 디렉토리에 배치
 - 테스트 파일명: `test_{module_name}.py`

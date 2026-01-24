@@ -62,8 +62,6 @@ def create_app() -> FastAPI:
 
     app.include_router(extraction_router, prefix="/api", tags=["Extraction"])
     app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
-    app.include_router(extraction_router, prefix="/api", tags=["Extraction"])
-    app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
     app.include_router(recommendation_router, prefix="/api", tags=["Recommendation"])
 
     # User router
