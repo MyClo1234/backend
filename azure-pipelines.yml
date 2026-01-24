@@ -6,19 +6,6 @@ pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
-  - script: |
-      echo ">>> 1. Checking current DNS server..."
-      resolvectl status || cat /etc/resolv.conf
-      
-      echo "---------------------------------"
-      echo ">>> 2. Default Lookup (Likely to fail)"
-      nslookup codify-functions-backend.scm.azurewebsites.net
-      
-      echo "---------------------------------"
-      echo ">>> 3. Force Azure Internal DNS (168.63.129.16)"
-      # 이게 성공하면(Address: 172.16.0.6), Azure 설정은 완벽한데 VM이 엉뚱한 DNS를 쓰는 겁니다.
-      nslookup codify-functions-backend.scm.azurewebsites.net 168.63.129.16
-    displayName: "Debug DNS Configuration"
   # 1. 배포 파일 압축
   - task: ArchiveFiles@2
     displayName: "Archive files"
@@ -29,21 +16,21 @@ steps:
       archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 2. [검증] DNS 조회 테스트
-  # VM이 재부팅되면서 Azure DNS 설정을 받아왔다면,
-  # 여기서 무조건 'Address: 172.16.0.6'이 떠야 합니다.
+  # 2. 정석 DNS 및 인증 설정을 통한 배포
   - script: |
-      echo ">>> Checking DNS Resolution..."
-      nslookup codify-functions-backend.scm.azurewebsites.net
-    displayName: "Verify DNS (Must show 172.16.0.6)"
-
-  # 3. [배포] 정석 배포 (도메인 사용)
-  # DNS가 정상이면 --resolve 옵션 없이도 배포가 성공합니다.
-  - script: |
-      echo "Deploying to: https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
+      # 172.16.0.6으로 연결되는 정석 SCM 주소입니다.
+      DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/zipdeploy"
       
-      curl -f -v -X POST -u "$(DEPLOY_USER):$(DEPLOY_PWD)" \
+      echo "Starting deployment to Private Endpoint (172.16.0.6)..."
+      
+      # -u 옵션에 $USER:$PASS 환경 변수를 사용하여 특수문자 변형을 방지합니다.
+      curl -f -v -u "$USER:$PASS" \
       -H "Content-Type: application/zip" \
       --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
-      "https://codify-functions-backend.scm.azurewebsites.net/api/zipdeploy"
-    displayName: "Deploy to Azure Functions"
+      "$DEPLOY_URL"
+    displayName: "Deploy to Azure Functions (Final Success)"
+    env:
+      # Secret 변수를 스크립트에서 안전하게 사용할 수 있도록 매핑합니다.
+      # 작은따옴표로 감싸는 것이 정석입니다.
+      USER: '$(DEPLOY_USER)'
+      PASS: '$(DEPLOY_PWD)'
