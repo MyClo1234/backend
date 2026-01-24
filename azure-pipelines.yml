@@ -63,7 +63,40 @@ steps:
       DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/publish?type=zip"
       echo "Deploy to: $DEPLOY_URL"
 
-      curl -f -v -u "${USER}:${PASS}" \
+      curl_retry() {
+        local retries=$1
+        shift
+
+        local count=0
+        until curl "$@"; do
+          exit=$?
+          wait=$((2 ** count))
+          count=$((count + 1))
+          if [ $count -lt $retries ]; then
+            echo "Retry $count/$retries exited $exit, retrying in $wait seconds..."
+            sleep $wait
+          else
+            echo "Retry $count/$retries exited $exit, no more retries left."
+            return $exit
+          fi
+        done
+        return 0
+      }
+
+      # -f: fail on HTTP error
+      # -v: verbose
+      # --retry 5: curl internal retry
+      # --retry-delay 5: delay between internal retries
+      # --retry-connrefused: retry on connection refused
+      # --connect-timeout 60: timeout for connection
+      # --max-time 300: max time for whole operation
+      
+      curl_retry 5 -f -v -u "${USER}:${PASS}" \
+        --retry 5 \
+        --retry-delay 5 \
+        --retry-connrefused \
+        --connect-timeout 60 \
+        --max-time 300 \
         -H "Content-Type: application/zip" \
         --data-binary @"$(Build.ArtifactStagingDirectory)/build.zip" \
         "$DEPLOY_URL"
