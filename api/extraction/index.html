@@ -12,13 +12,13 @@
         <meta name="author" content="MyClo Team">
       
       
-        <link rel="canonical" href="https://myclo1234.github.io/backend/api/overview/">
+        <link rel="canonical" href="https://myclo1234.github.io/backend/api/extraction/">
       
       
-        <link rel="prev" href="../../architecture/langgraph-flows/">
+        <link rel="prev" href="../recommendation/">
       
       
-        <link rel="next" href="../auth/">
+        <link rel="next" href="../../development/rules/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>개요 - MyClo Backend Documentation</title>
+        <title>이미지 분석 (Extraction) - MyClo Backend Documentation</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#api" class="md-skip">
+        <a href="#api-extraction" class="md-skip">
           콘텐츠로 이동
         </a>
       
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              개요
+              이미지 분석 (Extraction)
             
           </span>
         </div>
@@ -276,7 +276,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../overview/" class="md-tabs__link">
           
   
   
@@ -702,37 +702,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    개요
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
         
   
   
@@ -748,309 +721,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="목차">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      목차
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#base-url" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🌐 Base URL
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        📚 API 문서
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="📚 API 문서">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#swagger-ui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Swagger UI
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#redoc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ReDoc
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🔑 인증
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🔑 인증">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        토큰 획득
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        토큰 사용
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        📋 API 도메인
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="📋 API 도메인">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-auth" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. 인증 (Auth)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-user" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 사용자 (User)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-wardrobe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 옷장 (Wardrobe)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-weather" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. 날씨 (Weather)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-recommendation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. 추천 (Recommendation)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-extraction" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. 이미지 분석 (Extraction)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_4" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        📊 공통 응답 형식
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="📊 공통 응답 형식">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        성공 응답
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_6" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        에러 응답
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#http" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🔢 HTTP 상태 코드
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_7" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🚀 빠른 시작 예제
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🚀 빠른 시작 예제">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. 회원가입
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 로그인
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 옷장 조회
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_8" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        📚 다음 단계
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1172,10 +842,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../extraction/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    이미지 분석 (Extraction)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1191,6 +888,336 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="목차">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      목차
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#base-url" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Base URL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        인증
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        엔드포인트
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="엔드포인트">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지 업로드 및 분석
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        추출되는 속성
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="추출되는 속성">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-category" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. 카테고리 (Category)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-color" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 색상 (Color)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 패턴 (Pattern)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-material" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 소재 (Material)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 스타일 (Style)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-fit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 핏 (Fit)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-thickness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 두께 (Thickness)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-season" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 계절 (Season)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-mood-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 무드 태그 (Mood Tags)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI 분석 프로세스
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지 요구사항
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="이미지 요구사항">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파일 형식
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파일 크기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지 품질
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        에러 응답
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="에러 응답">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#400-bad-request-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        400 Bad Request - 파일 없음
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#400-bad-request-_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        400 Bad Request - 잘못된 파일 형식
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#413-payload-too-large" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        413 Payload Too Large
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#500-internal-server-error-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        500 Internal Server Error - AI 분석 실패
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        분석 결과 활용
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        관련 API
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1495,49 +1522,10 @@
   <a href="#base-url" class="md-nav__link">
     <span class="md-ellipsis">
       
-        🌐 Base URL
+        Base URL
       
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        📚 API 문서
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="📚 API 문서">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#swagger-ui" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Swagger UI
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#redoc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ReDoc
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1545,113 +1533,30 @@
   <a href="#_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        🔑 인증
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🔑 인증">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        토큰 획득
+        인증
       
     </span>
   </a>
   
 </li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        엔드포인트
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="엔드포인트">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        토큰 사용
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#api_2" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        📋 API 도메인
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="📋 API 도메인">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-auth" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. 인증 (Auth)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-user" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. 사용자 (User)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-wardrobe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. 옷장 (Wardrobe)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#4-weather" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. 날씨 (Weather)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#5-recommendation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. 추천 (Recommendation)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#6-extraction" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. 이미지 분석 (Extraction)
+        이미지 업로드 및 분석
       
     </span>
   </a>
@@ -1667,19 +1572,19 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        📊 공통 응답 형식
+        추출되는 속성
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="📊 공통 응답 형식">
+    <nav class="md-nav" aria-label="추출되는 속성">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#_5" class="md-nav__link">
+  <a href="#1-category" class="md-nav__link">
     <span class="md-ellipsis">
       
-        성공 응답
+        1. 카테고리 (Category)
       
     </span>
   </a>
@@ -1687,7 +1592,161 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#2-color" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. 색상 (Color)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. 패턴 (Pattern)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-material" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. 소재 (Material)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. 스타일 (Style)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-fit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 핏 (Fit)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-thickness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. 두께 (Thickness)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-season" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. 계절 (Season)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-mood-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. 무드 태그 (Mood Tags)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI 분석 프로세스
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지 요구사항
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="이미지 요구사항">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파일 형식
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        파일 크기
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        이미지 품질
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
     <span class="md-ellipsis">
       
         에러 응답
@@ -1695,41 +1754,14 @@
     </span>
   </a>
   
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#http" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🔢 HTTP 상태 코드
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#_7" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        🚀 빠른 시작 예제
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="🚀 빠른 시작 예제">
+    <nav class="md-nav" aria-label="에러 응답">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1" class="md-nav__link">
+  <a href="#400-bad-request-" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. 회원가입
+        400 Bad Request - 파일 없음
       
     </span>
   </a>
@@ -1737,10 +1769,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2" class="md-nav__link">
+  <a href="#400-bad-request-_1" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. 로그인
+        400 Bad Request - 잘못된 파일 형식
       
     </span>
   </a>
@@ -1748,10 +1780,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3" class="md-nav__link">
+  <a href="#413-payload-too-large" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. 옷장 조회
+        413 Payload Too Large
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#500-internal-server-error-ai" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        500 Internal Server Error - AI 분석 실패
       
     </span>
   </a>
@@ -1764,10 +1807,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#_8" class="md-nav__link">
+  <a href="#_10" class="md-nav__link">
     <span class="md-ellipsis">
       
-        📚 다음 단계
+        분석 결과 활용
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        관련 API
       
     </span>
   </a>
@@ -1800,201 +1854,255 @@
   
 
 
-<h1 id="api">API 개요<a class="headerlink" href="#api" title="Permanent link">&para;</a></h1>
-<p>MyClo 백엔드는 RESTful API를 제공하며, 모든 엔드포인트는 <code>/api</code> prefix를 사용합니다.</p>
-<h2 id="base-url">🌐 Base URL<a class="headerlink" href="#base-url" title="Permanent link">&para;</a></h2>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">로컬 개발</label><label for="__tabbed_1_2">Azure Functions (로컬)</label><label for="__tabbed_1_3">프로덕션</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>http://localhost:8000/api
+<h1 id="api-extraction">이미지 분석 API (Extraction)<a class="headerlink" href="#api-extraction" title="Permanent link">&para;</a></h1>
+<p>AI 기반 옷 이미지 속성 추출 API입니다.</p>
+<h2 id="base-url">Base URL<a class="headerlink" href="#base-url" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/api/extraction
 </span></code></pre></div>
+<h2 id="_1">인증<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">인증 필요</p>
+<p>모든 이미지 분석 API는 JWT 토큰 인증이 필요합니다.</p>
 </div>
-<div class="tabbed-block">
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>http://localhost:7071/api
-</span></code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>https://your-function-app.azurewebsites.net/api
-</span></code></pre></div>
-</div>
-</div>
-</div>
-<h2 id="api_1">📚 API 문서<a class="headerlink" href="#api_1" title="Permanent link">&para;</a></h2>
-<h3 id="swagger-ui">Swagger UI<a class="headerlink" href="#swagger-ui" title="Permanent link">&para;</a></h3>
-<p>대화형 API 문서를 제공합니다.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>http://localhost:8000/docs
-</span></code></pre></div>
-<h3 id="redoc">ReDoc<a class="headerlink" href="#redoc" title="Permanent link">&para;</a></h3>
-<p>읽기 쉬운 API 문서를 제공합니다.</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>http://localhost:8000/redoc
-</span></code></pre></div>
-<h2 id="_1">🔑 인증<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<p>대부분의 API는 JWT 인증이 필요합니다.</p>
-<h3 id="_2">토큰 획득<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>POST<span class="w"> </span>/api/auth/login
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>Content-Type:<span class="w"> </span>application/json
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="o">{</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="s2">&quot;username&quot;</span>:<span class="w"> </span><span class="s2">&quot;user@example.com&quot;</span>,
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="s2">&quot;password&quot;</span>:<span class="w"> </span><span class="s2">&quot;your_password&quot;</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="o">}</span>
-</span></code></pre></div>
-<p><strong>응답:</strong>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;token&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;</span><span class="p">,</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;uuid&quot;</span><span class="p">,</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user@example.com&quot;</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="p">}</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">}</span>
+<h2 id="_2">엔드포인트<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<h3 id="_3">이미지 업로드 및 분석<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<p>옷 이미지를 업로드하고 AI로 속성을 자동 추출합니다.</p>
+<p><strong>Endpoint</strong>
+<div class="language-http highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="err">POST /extraction/upload</span>
 </span></code></pre></div></p>
-<h3 id="_3">토큰 사용<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
-<p>모든 인증이 필요한 요청에 <code>Authorization</code> 헤더를 포함합니다:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>GET<span class="w"> </span>/api/wardrobe/users/me/images
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>Authorization:<span class="w"> </span>Bearer<span class="w"> </span>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-</span></code></pre></div>
-<h2 id="api_2">📋 API 도메인<a class="headerlink" href="#api_2" title="Permanent link">&para;</a></h2>
-<h3 id="1-auth">1. 인증 (Auth)<a class="headerlink" href="#1-auth" title="Permanent link">&para;</a></h3>
-<p>사용자 인증 및 회원가입</p>
-<ul>
-<li><a href="../auth/">Auth API 가이드</a></li>
-</ul>
-<p><strong>주요 엔드포인트:</strong>
-- <code>POST /auth/signup</code> - 회원가입
-- <code>POST /auth/login</code> - 로그인
-- <code>POST /auth/logout</code> - 로그아웃</p>
-<h3 id="2-user">2. 사용자 (User)<a class="headerlink" href="#2-user" title="Permanent link">&para;</a></h3>
-<p>사용자 프로필 관리</p>
-<p><strong>주요 엔드포인트:</strong>
-- <code>GET /users/me</code> - 내 정보 조회
-- <code>PUT /users/profile</code> - 프로필 수정</p>
-<h3 id="3-wardrobe">3. 옷장 (Wardrobe)<a class="headerlink" href="#3-wardrobe" title="Permanent link">&para;</a></h3>
-<p>옷 아이템 관리</p>
-<ul>
-<li><a href="../wardrobe/">Wardrobe API 가이드</a></li>
-</ul>
-<p><strong>주요 엔드포인트:</strong>
-- <code>GET /wardrobe/users/me/images</code> - 내 옷장 조회
-- <code>GET /wardrobe/items/{item_id}</code> - 아이템 상세
-- <code>POST /extraction/upload</code> - 이미지 업로드</p>
-<h3 id="4-weather">4. 날씨 (Weather)<a class="headerlink" href="#4-weather" title="Permanent link">&para;</a></h3>
-<p>날씨 정보 조회</p>
-<ul>
-<li><a href="../weather-api/">Weather API 가이드</a></li>
-</ul>
-<p><strong>주요 엔드포인트:</strong>
-- <code>GET /weather/current</code> - 현재 날씨
-- <code>GET /weather/forecast</code> - 날씨 예보</p>
-<h3 id="5-recommendation">5. 추천 (Recommendation)<a class="headerlink" href="#5-recommendation" title="Permanent link">&para;</a></h3>
-<p>AI 기반 코디 추천</p>
-<ul>
-<li><a href="../recommendation/">Recommendation API 가이드</a></li>
-</ul>
-<p><strong>주요 엔드포인트:</strong>
-- <code>GET /recommendations</code> - 코디 추천
-- <code>POST /recommendations/score</code> - 코디 점수</p>
-<h3 id="6-extraction">6. 이미지 분석 (Extraction)<a class="headerlink" href="#6-extraction" title="Permanent link">&para;</a></h3>
-<p>옷 이미지 속성 추출</p>
-<ul>
-<li><a href="../extraction/">Extraction API 가이드</a></li>
-</ul>
-<p><strong>주요 엔드포인트:</strong>
-- <code>POST /extraction/upload</code> - 이미지 업로드 및 분석</p>
-<h2 id="_4">📊 공통 응답 형식<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
-<h3 id="_5">성공 응답<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">&quot;total_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">&quot;has_more&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">}</span>
-</span></code></pre></div>
-<h3 id="_6">에러 응답<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
-<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Error message here&quot;</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="p">}</span>
-</span></code></pre></div>
-<h2 id="http">🔢 HTTP 상태 코드<a class="headerlink" href="#http" title="Permanent link">&para;</a></h2>
+<p><strong>Request (multipart/form-data)</strong></p>
 <table>
 <thead>
 <tr>
-<th>코드</th>
-<th>의미</th>
+<th>필드</th>
+<th>타입</th>
+<th>필수</th>
 <th>설명</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>200</td>
-<td>OK</td>
-<td>요청 성공</td>
-</tr>
-<tr>
-<td>201</td>
-<td>Created</td>
-<td>리소스 생성 성공</td>
-</tr>
-<tr>
-<td>400</td>
-<td>Bad Request</td>
-<td>잘못된 요청</td>
-</tr>
-<tr>
-<td>401</td>
-<td>Unauthorized</td>
-<td>인증 필요</td>
-</tr>
-<tr>
-<td>403</td>
-<td>Forbidden</td>
-<td>권한 없음</td>
-</tr>
-<tr>
-<td>404</td>
-<td>Not Found</td>
-<td>리소스 없음</td>
-</tr>
-<tr>
-<td>500</td>
-<td>Internal Server Error</td>
-<td>서버 오류</td>
+<td>file</td>
+<td>file</td>
+<td>✅</td>
+<td>이미지 파일 (JPG, PNG, GIF, WebP)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="_7">🚀 빠른 시작 예제<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h2>
-<h3 id="1">1. 회원가입<a class="headerlink" href="#1" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/api/auth/signup<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="s1">    &quot;username&quot;: &quot;test@example.com&quot;,</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="s1">    &quot;password&quot;: &quot;password123&quot;,</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="s1">    &quot;age&quot;: 25,</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="s1">    &quot;height&quot;: 170,</span>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="s1">    &quot;weight&quot;: 65</span>
-</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="s1">  }&#39;</span>
+<p><strong>예제</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://localhost:7071/api/extraction/upload&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_TOKEN&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-F<span class="w"> </span><span class="s2">&quot;file=@/path/to/shirt.jpg&quot;</span>
+</span></code></pre></div></p>
+<p><strong>Response</strong>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;success&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;image_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://storage.blob.core.windows.net/myclo/users/.../image.jpg&quot;</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;item_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;789&quot;</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;blob_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;users/uuid/20240125/image.jpg&quot;</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="nt">&quot;main&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;top&quot;</span><span class="p">,</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="nt">&quot;sub&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;shirt&quot;</span><span class="p">,</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">      </span><span class="nt">&quot;confidence&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.95</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">      </span><span class="nt">&quot;primary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;blue&quot;</span><span class="p">,</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="nt">&quot;secondary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">      </span><span class="nt">&quot;hex&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#0066CC&quot;</span><span class="p">,</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">      </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;파란색&quot;</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">    </span><span class="nt">&quot;pattern&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;striped&quot;</span><span class="p">,</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">    </span><span class="nt">&quot;material&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cotton&quot;</span><span class="p">,</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">    </span><span class="nt">&quot;style&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;casual&quot;</span><span class="p">,</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">    </span><span class="nt">&quot;fit&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;regular&quot;</span><span class="p">,</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">    </span><span class="nt">&quot;neckline&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;collar&quot;</span><span class="p">,</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">    </span><span class="nt">&quot;sleeve_length&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;long&quot;</span><span class="p">,</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">    </span><span class="nt">&quot;thickness&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span><span class="nt">&quot;season&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;spring&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;fall&quot;</span><span class="p">],</span>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">    </span><span class="nt">&quot;mood_tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;formal&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;business&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;clean&quot;</span><span class="p">],</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">    </span><span class="nt">&quot;features&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">      </span><span class="nt">&quot;buttons&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">      </span><span class="nt">&quot;pockets&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">      </span><span class="nt">&quot;print&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="p">}</span>
+</span></code></pre></div></p>
+<h2 id="_4">추출되는 속성<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h3 id="1-category">1. 카테고리 (Category)<a class="headerlink" href="#1-category" title="Permanent link">&para;</a></h3>
+<p><strong>메인 카테고리</strong>
+- <code>top</code> - 상의
+- <code>bottom</code> - 하의
+- <code>outer</code> - 아우터
+- <code>dress</code> - 원피스
+- <code>shoes</code> - 신발
+- <code>accessory</code> - 액세서리</p>
+<p><strong>서브 카테고리 (Top 예시)</strong>
+- <code>t-shirt</code> - 티셔츠
+- <code>shirt</code> - 셔츠
+- <code>hoodie</code> - 후드티
+- <code>sweater</code> - 스웨터
+- <code>blouse</code> - 블라우스</p>
+<p><strong>신뢰도 (Confidence)</strong>
+- 0.0 ~ 1.0 사이의 값
+- 0.8 이상: 높은 신뢰도
+- 0.6 ~ 0.8: 중간 신뢰도
+- 0.6 미만: 낮은 신뢰도</p>
+<h3 id="2-color">2. 색상 (Color)<a class="headerlink" href="#2-color" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;primary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;blue&quot;</span><span class="p">,</span><span class="w">      </span><span class="c1">// 주 색상</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;secondary&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="w">   </span><span class="c1">// 보조 색상</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;hex&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;#0066CC&quot;</span><span class="p">,</span><span class="w">      </span><span class="c1">// HEX 코드</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;파란색&quot;</span><span class="p">,</span><span class="w">       </span><span class="c1">// 한글 색상명</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;rgb&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">102</span><span class="p">,</span><span class="w"> </span><span class="mi">204</span><span class="p">]</span><span class="w">   </span><span class="c1">// RGB 값</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">}</span>
 </span></code></pre></div>
-<h3 id="2">2. 로그인<a class="headerlink" href="#2" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8000/api/auth/login<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="s1">    &quot;username&quot;: &quot;test@example.com&quot;,</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="s1">    &quot;password&quot;: &quot;password123&quot;</span>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="s1">  }&#39;</span>
-</span></code></pre></div>
-<h3 id="3">3. 옷장 조회<a class="headerlink" href="#3" title="Permanent link">&para;</a></h3>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>GET<span class="w"> </span>http://localhost:8000/api/wardrobe/users/me/images<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_TOKEN_HERE&quot;</span>
-</span></code></pre></div>
-<h2 id="_8">📚 다음 단계<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
-<p>각 도메인별 상세 API 가이드를 참고하세요:</p>
+<p><strong>지원 색상</strong>
+- 기본색: red, blue, green, yellow, black, white, gray, brown
+- 파스텔: pastel pink, pastel blue, mint
+- 기타: navy, beige, khaki, burgundy</p>
+<h3 id="3-pattern">3. 패턴 (Pattern)<a class="headerlink" href="#3-pattern" title="Permanent link">&para;</a></h3>
 <ul>
-<li><a href="../auth/">Auth API</a></li>
-<li><a href="../wardrobe/">Wardrobe API</a></li>
-<li><a href="../weather-api/">Weather API</a></li>
-<li><a href="../recommendation/">Recommendation API</a></li>
-<li><a href="../extraction/">Extraction API</a></li>
+<li><code>solid</code> - 무지</li>
+<li><code>striped</code> - 줄무늬</li>
+<li><code>checked</code> - 체크</li>
+<li><code>floral</code> - 꽃무늬</li>
+<li><code>dotted</code> - 도트</li>
+<li><code>geometric</code> - 기하학 무늬</li>
+<li><code>animal</code> - 동물 무늬</li>
+</ul>
+<h3 id="4-material">4. 소재 (Material)<a class="headerlink" href="#4-material" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>cotton</code> - 면</li>
+<li><code>polyester</code> - 폴리에스터</li>
+<li><code>wool</code> - 울</li>
+<li><code>denim</code> - 데님</li>
+<li><code>leather</code> - 가죽</li>
+<li><code>silk</code> - 실크</li>
+<li><code>linen</code> - 린넨</li>
+<li><code>blend</code> - 혼방</li>
+</ul>
+<h3 id="5-style">5. 스타일 (Style)<a class="headerlink" href="#5-style" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>casual</code> - 캐주얼</li>
+<li><code>formal</code> - 포멀</li>
+<li><code>sporty</code> - 스포티</li>
+<li><code>vintage</code> - 빈티지</li>
+<li><code>street</code> - 스트릿</li>
+<li><code>minimal</code> - 미니멀</li>
+</ul>
+<h3 id="6-fit">6. 핏 (Fit)<a class="headerlink" href="#6-fit" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>slim</code> - 슬림</li>
+<li><code>regular</code> - 레귤러</li>
+<li><code>oversized</code> - 오버사이즈</li>
+<li><code>loose</code> - 루즈</li>
+</ul>
+<h3 id="7-thickness">7. 두께 (Thickness)<a class="headerlink" href="#7-thickness" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>1</code> - 매우 얇음 (여름용)</li>
+<li><code>2</code> - 얇음 (봄/가을)</li>
+<li><code>3</code> - 보통</li>
+<li><code>4</code> - 두꺼움 (겨울용)</li>
+<li><code>5</code> - 매우 두꺼움 (한겨울)</li>
+</ul>
+<h3 id="8-season">8. 계절 (Season)<a class="headerlink" href="#8-season" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">[</span><span class="s2">&quot;spring&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;summer&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;fall&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;winter&quot;</span><span class="p">]</span>
+</span></code></pre></div>
+<h3 id="9-mood-tags">9. 무드 태그 (Mood Tags)<a class="headerlink" href="#9-mood-tags" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">[</span><span class="s2">&quot;casual&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;comfortable&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;clean&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;modern&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;trendy&quot;</span><span class="p">]</span>
+</span></code></pre></div>
+<h2 id="ai">AI 분석 프로세스<a class="headerlink" href="#ai" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>sequenceDiagram
+    participant C as Client
+    participant API as Extraction API
+    participant Storage as Azure Blob
+    participant AI as Azure OpenAI
+    participant DB as Database
+
+    C-&gt;&gt;API: 이미지 업로드
+    API-&gt;&gt;Storage: 이미지 저장
+    Storage--&gt;&gt;API: 이미지 URL
+    API-&gt;&gt;AI: 이미지 분석 요청
+    AI--&gt;&gt;API: 속성 추출 결과
+    API-&gt;&gt;DB: 메타데이터 저장
+    API--&gt;&gt;C: 분석 결과 반환</code></pre>
+<h2 id="_5">이미지 요구사항<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<h3 id="_6">파일 형식<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>✅ JPG/JPEG</li>
+<li>✅ PNG</li>
+<li>✅ GIF</li>
+<li>✅ WebP</li>
+</ul>
+<h3 id="_7">파일 크기<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li>최대: <strong>10MB</strong></li>
+<li>권장: <strong>2MB 이하</strong></li>
+</ul>
+<h3 id="_8">이미지 품질<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li>해상도: 최소 <strong>800x800px</strong> 권장</li>
+<li>배경: 단색 배경 권장</li>
+<li>조명: 밝고 균일한 조명</li>
+<li>각도: 정면 촬영 권장</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">최적의 분석을 위한 팁</p>
+<ul>
+<li>옷만 촬영 (사람이 입지 않은 상태)</li>
+<li>깨끗하고 주름 없는 상태</li>
+<li>전체가 보이도록 촬영</li>
+<li>배경은 흰색 또는 단색</li>
+</ul>
+</div>
+<h2 id="_9">에러 응답<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
+<h3 id="400-bad-request-">400 Bad Request - 파일 없음<a class="headerlink" href="#400-bad-request-" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;No file uploaded&quot;</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="400-bad-request-_1">400 Bad Request - 잘못된 파일 형식<a class="headerlink" href="#400-bad-request-_1" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Invalid file type. Allowed: jpg, jpeg, png, gif, webp&quot;</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="413-payload-too-large">413 Payload Too Large<a class="headerlink" href="#413-payload-too-large" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;File size exceeds 10MB limit&quot;</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="500-internal-server-error-ai">500 Internal Server Error - AI 분석 실패<a class="headerlink" href="#500-internal-server-error-ai" title="Permanent link">&para;</a></h3>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Failed to analyze image&quot;</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<h2 id="_10">분석 결과 활용<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h2>
+<p>추출된 속성은 다음과 같이 활용됩니다:</p>
+<ol>
+<li><strong>옷장 관리</strong></li>
+<li>자동 카테고리 분류</li>
+<li>
+<p>색상/스타일별 필터링</p>
+</li>
+<li>
+<p><strong>코디 추천</strong></p>
+</li>
+<li>색상 조화 분석</li>
+<li>
+<p>스타일 매칭</p>
+</li>
+<li>
+<p><strong>검색</strong></p>
+</li>
+<li>속성 기반 검색</li>
+<li>유사 아이템 찾기</li>
+</ol>
+<h2 id="api">관련 API<a class="headerlink" href="#api" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../wardrobe/">Wardrobe API</a> - 분석된 아이템 조회</li>
+<li><a href="../recommendation/">Recommendation API</a> - 코디 추천</li>
 </ul>
 
 
@@ -2031,7 +2139,7 @@
       <nav class="md-footer__inner md-grid" aria-label="하단/푸터" >
         
           
-          <a href="../../architecture/langgraph-flows/" class="md-footer__link md-footer__link--prev" aria-label="이전: LangGraph 워크플로우">
+          <a href="../recommendation/" class="md-footer__link md-footer__link--prev" aria-label="이전: 추천 (Recommendation)">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2041,20 +2149,20 @@
                 이전
               </span>
               <div class="md-ellipsis">
-                LangGraph 워크플로우
+                추천 (Recommendation)
               </div>
             </div>
           </a>
         
         
           
-          <a href="../auth/" class="md-footer__link md-footer__link--next" aria-label="다음: 인증 (Auth)">
+          <a href="../../development/rules/" class="md-footer__link md-footer__link--next" aria-label="다음: 프로젝트 규칙">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 다음
               </span>
               <div class="md-ellipsis">
-                인증 (Auth)
+                프로젝트 규칙
               </div>
             </div>
             <div class="md-footer__button md-icon">
