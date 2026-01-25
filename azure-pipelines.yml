@@ -43,10 +43,10 @@ steps:
       source .venv/bin/activate
       
       export CI=true
-      # Self-hosted agent setup (No Docker): use local Postgres directly
-      export TEST_DB_NAME=codify_test
-      export POSTGRES_USER=choeseonghyeon
-      # export POSTGRES_PASSWORD=password # Not needed for local trust auth usually
+      # Self-hosted agent setup: use local Postgres directly
+      # Connect to 127.0.0.1 to avoid IPv6 issues
+      # Use the 'choeseonghyeon' user that owns the visible Postgres process
+      export DATABASE_URL="postgresql://choeseonghyeon@127.0.0.1:5432/codify_test"
       
       pytest -v
     displayName: "Run Tests with pytest"
