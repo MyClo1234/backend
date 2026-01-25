@@ -9,23 +9,25 @@ steps:
   # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
   - script: |
       set -euo pipefail
-      python3 --version
-
-      python3 -m venv .venv
-      .venv/bin/python -m pip install -U pip
-
-      # 깨끗하게 재설치 (캐시/잔재 방지)
+      
+      # 1. Install uv
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
+      
+      # 2. Setup venv & clean target
+      uv venv .venv
       rm -rf .python_packages
       mkdir -p .python_packages/lib/site-packages
 
-      .venv/bin/python -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+      # 3. Install dependencies with uv
+      uv pip install -r requirements.txt --target ".python_packages/lib/site-packages"
 
       echo "Installed packages count:"
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | wc -l
 
       echo "Sample entries:"
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
-    displayName: "Install dependencies into .python_packages"
+    displayName: "Install dependencies with uv"
 
   # 2) zip 전에 필수 파일 존재 체크
   - script: |
