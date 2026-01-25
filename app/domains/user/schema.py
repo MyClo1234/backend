@@ -20,19 +20,6 @@ class UserCreate(BaseModel):
         return v
 
 
-# 로그인 시 받을 데이터 규격 (아이디/비번만)
-class UserLogin(BaseModel):
-    username: str
-    password: str
-
-    @field_validator("password")
-    @classmethod
-    def validate_password_length(cls, v):
-        if len(v.encode("utf-8")) > 72:
-            raise ValueError("비밀번호는 72바이트를 초과할 수 없습니다.")
-        return v
-
-
 # 사용자 정보 수정 시 받을 데이터 규격 (Optional)
 class UserUpdate(BaseModel):
     height: float | None = None
@@ -53,9 +40,3 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class AuthResponse(BaseModel):
-    success: bool
-    token: str
-    user: UserResponse

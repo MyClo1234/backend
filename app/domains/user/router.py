@@ -2,12 +2,12 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas.user import UserUpdate, UserResponse
-from app.services import user_service
+from .schema import UserUpdate, UserResponse
+from .service import update_user_profile
 from app.core.security import ALGORITHM, SECRET_KEY
 from jose import JWTError, jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.models.user import User
+from .model import User
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ def update_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    updated_user = user_service.update_user_profile(db, current_user.id, update_data)
+    updated_user = update_user_profile(db, current_user.id, update_data)
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return updated_user

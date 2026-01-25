@@ -1,8 +1,10 @@
 from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
-from app.services.wardrobe_manager import wardrobe_manager
-from app.services.recommender import recommender
-from app.models.schemas import OutfitScoreResponse, RecommendationResponse
+from app.domains.wardrobe.service import wardrobe_manager
+from .service import recommender
+from .schema import RecommendationResponse, OutfitScoreResponse
+from app.domains.wardrobe.schema import WardrobeItemSchema
+from app.schemas.common import AttributesSchema
 from app.utils.response_helpers import create_success_response, handle_route_exception
 
 recommendation_router = APIRouter()
@@ -23,13 +25,15 @@ def get_outfit_score(top_id: str = Query(...), bottom_id: str = Query(...)):
 
         score, reasons = recommender.calculate_outfit_score(top_item, bottom_item)
 
-        return create_success_response({
-            "score": round(score, 3),
-            "score_percent": round(score * 100),
-            "reasons": reasons,
-            "top": top_item,
-            "bottom": bottom_item,
-        })
+        return create_success_response(
+            {
+                "score": round(score, 3),
+                "score_percent": round(score * 100),
+                "reasons": reasons,
+                "top": top_item,
+                "bottom": bottom_item,
+            }
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -41,7 +45,9 @@ def recommend_outfit(
     count: int = Query(1, ge=1),
     season: Optional[str] = Query(None),
     formality: Optional[float] = Query(None),
-    use_llm: bool = Query(True, description="LLM 사용 여부 (기본값: true, Azure OpenAI 사용)"),
+    use_llm: bool = Query(
+        True, description="LLM 사용 여부 (기본값: true, Azure OpenAI 사용)"
+    ),
 ):
     try:
         all_items = wardrobe_manager.load_items()
@@ -62,7 +68,7 @@ def recommend_outfit(
                 {"outfits": []},
                 count=0,
                 method="none",
-                message="Not enough items in wardrobe (need at least one top and one bottom)"
+                message="Not enough items in wardrobe (need at least one top and one bottom)",
             )
 
         if season:
@@ -104,7 +110,7 @@ def recommend_outfit(
                 {"outfits": []},
                 count=0,
                 method="none",
-                message="No items match the filters"
+                message="No items match the filters",
             )
 
         # Use Azure OpenAI (via LangGraph workflow) for recommendation
@@ -115,7 +121,7 @@ def recommend_outfit(
                     return create_success_response(
                         {"outfits": recommendations},
                         count=len(recommendations),
-                        method="azure-openai-optimized"
+                        method="azure-openai-optimized",
                     )
             except Exception as e:
                 print(f"LLM recommendation error: {e}")
@@ -126,7 +132,7 @@ def recommend_outfit(
         return create_success_response(
             {"outfits": recommendations},
             count=len(recommendations),
-            method="rule-based"
+            method="rule-based",
         )
 
     except HTTPException:

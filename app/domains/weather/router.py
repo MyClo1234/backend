@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.services.weather_service import weather_service
-from app.models.weather_schemas import DailyWeatherResponse
+from .service import weather_service
+from .schema import DailyWeatherResponse
 from app.core.regions import get_nearest_region
 
 router = APIRouter()
