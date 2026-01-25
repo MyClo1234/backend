@@ -4,6 +4,7 @@ Pytest configuration and fixtures for backend tests.
 
 import sys
 from pathlib import Path
+import os
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -13,34 +14,35 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.database import Base, get_db
 
+# Load environment variables
+from dotenv import load_dotenv
 
-# Test database URL (in-memory SQLite)
-SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
+load_dotenv()
+
+# Use Azure PostgreSQL for tests
+# Create a test database URL from environment variables
+POSTGRES_USER = os.getenv("POSTGRES_USER", "codify_admin")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_SERVER = os.getenv(
+    "POSTGRES_SERVER", "codify-postgres.postgres.database.azure.com"
+)
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "codify")
+
+DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 
 @pytest.fixture(scope="function")
 def test_db():
     """
-    Create a fresh test database for each test function.
-    Uses in-memory SQLite for speed.
-    Only creates User table to avoid JSONB compatibility issues.
+    Create a test database session using Azure PostgreSQL.
+    Uses the same database as production but with transaction rollback.
     """
-    engine = create_engine(
-        SQLALCHEMY_TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-
-    # Import only User model to avoid JSONB issues with ClosetItem
-    from app.domains.user.model import User
-
-    # Create only User table
-    User.__table__.create(bind=engine, checkfirst=True)
+    engine = create_engine(DATABASE_URL)
 
     # Create session
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -49,9 +51,9 @@ def test_db():
     try:
         yield db
     finally:
+        # Rollback any changes made during the test
+        db.rollback()
         db.close()
-        # Drop User table after test
-        User.__table__.drop(bind=engine, checkfirst=True)
 
 
 @pytest.fixture(scope="function")
@@ -84,6 +86,10 @@ def client(test_db):
     test_app.include_router(auth_router, prefix="/api", tags=["Auth"])
     test_app.include_router(user_router, prefix="/api", tags=["Users"])
 
+    from app.domains.wardrobe.router import wardrobe_router
+
+    test_app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
+
     # Override database dependency
     def override_get_db():
         try:
@@ -106,8 +112,11 @@ def auth_headers(client):
     Create a test user and return authentication headers.
     """
     # Create test user
+    import uuid
+
+    unique_id = str(uuid.uuid4())[:8]
     signup_data = {
-        "username": "test@example.com",
+        "username": f"test_{unique_id}@example.com",
         "password": "testpassword123",
         "age": 25,
         "height": 175.0,
@@ -129,8 +138,11 @@ def test_user_data():
     """
     Provide test user data.
     """
+    import uuid
+
+    unique_id = str(uuid.uuid4())[:8]
     return {
-        "username": "testuser@example.com",
+        "username": f"testuser_{unique_id}@example.com",
         "password": "securepassword123",
         "age": 30,
         "height": 170.0,

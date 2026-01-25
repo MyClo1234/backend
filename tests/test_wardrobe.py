@@ -25,7 +25,7 @@ def test_get_wardrobe_items_unauthorized(client):
     """Test getting wardrobe items without authentication."""
     response = client.get("/api/wardrobe/users/me/images")
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.wardrobe

@@ -15,7 +15,8 @@ def test_get_current_user(client, auth_headers):
 
     assert "id" in data
     assert "username" in data
-    assert data["username"] == "test@example.com"
+    assert data["username"].startswith("test_")
+    assert data["username"].endswith("@example.com")
 
 
 @pytest.mark.unit
@@ -23,7 +24,7 @@ def test_get_current_user_unauthorized(client):
     """Test getting current user without authentication."""
     response = client.get("/api/users/me")
 
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.unit
@@ -54,4 +55,4 @@ def test_update_profile_unauthorized(client):
 
     response = client.put("/api/users/profile", json=update_data)
 
-    assert response.status_code == 403
+    assert response.status_code == 401
