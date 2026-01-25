@@ -6,7 +6,8 @@ from app.routers.user_routes import get_current_user
 from app.models.user import User
 from app.services.extractor import extractor
 from app.services.wardrobe_manager import wardrobe_manager
-from app.models.schemas import ExtractionResponse
+from app.schemas.extraction import ExtractionResponse, ExtractionUrlResponse
+from app.schemas.common import AttributesSchema
 from app.utils.validators import validate_uploaded_file
 from app.utils.response_helpers import handle_route_exception
 
@@ -33,9 +34,11 @@ async def extract(
     - **Authorization**: Bearer Token (필수)
     """
     logger.info("=== Extract Request Started ===")
-    logger.info(f"User authenticated: ID={current_user.id}, Username={current_user.user_name}")
+    logger.info(
+        f"User authenticated: ID={current_user.id}, Username={current_user.user_name}"
+    )
     logger.info(f"Image filename: {image.filename}, content_type: {image.content_type}")
-    
+
     try:
         # Read contents first for size validation
         contents = await image.read()
@@ -53,12 +56,18 @@ async def extract(
         # Sync extraction call
         logger.info("Starting attribute extraction...")
         attributes = extractor.extract(contents)
-        category_main = attributes.get('category', {}).get('main', 'N/A') if isinstance(attributes.get('category'), dict) else 'N/A'
+        category_main = (
+            attributes.get("category", {}).get("main", "N/A")
+            if isinstance(attributes.get("category"), dict)
+            else "N/A"
+        )
         logger.info(f"Attribute extraction completed. Category: {category_main}")
         logger.debug(f"Extracted attributes keys: {list(attributes.keys())}")
 
         # Save results with user_id (ORM + Blob)
-        logger.info(f"Saving item to database and blob storage for user_id={current_user.id}...")
+        logger.info(
+            f"Saving item to database and blob storage for user_id={current_user.id}..."
+        )
         save_result = wardrobe_manager.save_item(
             db=db,
             image_bytes=contents,
@@ -66,7 +75,9 @@ async def extract(
             attributes=attributes,
             user_id=current_user.id,
         )
-        logger.info(f"Item saved successfully. Item ID: {save_result.get('item_id')}, Image URL: {save_result.get('image_url')}")
+        logger.info(
+            f"Item saved successfully. Item ID: {save_result.get('item_id')}, Image URL: {save_result.get('image_url')}"
+        )
 
         # Determine storage type
         storage_type = "blob_storage" if save_result.get("blob_name") else "local"
@@ -88,5 +99,8 @@ async def extract(
         logger.error(f"HTTPException raised: {e.status_code} - {e.detail}")
         raise
     except Exception as e:
-        logger.error(f"Unexpected error during extraction: {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.error(
+            f"Unexpected error during extraction: {type(e).__name__}: {str(e)}",
+            exc_info=True,
+        )
         raise handle_route_exception(e)

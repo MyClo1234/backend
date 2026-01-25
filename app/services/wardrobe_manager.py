@@ -18,7 +18,8 @@ from app.utils.validators import validate_file_extension
 
 # Import models inside methods to avoid circular imports where possible,
 # or use TYPE_CHECKING pattern. For simplicity in this file scope:
-from app.models.schemas import WardrobeItemSchema, AttributesSchema
+from app.schemas.wardrobe import WardrobeResponse, WardrobeItemSchema
+from app.schemas.common import AttributesSchema, CategoryModel
 
 
 class WardrobeManager:

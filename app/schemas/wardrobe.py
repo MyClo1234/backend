@@ -1,32 +1,18 @@
+from typing import List, Optional
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-from uuid import UUID
+from .common import AttributesSchema
 
 
-class ClosetItemBase(BaseModel):
-    category: str
-    sub_category: Optional[str] = None
-    season: Optional[List[str]] = None
-    mood_tags: Optional[List[str]] = None
-    features: Optional[Dict[str, Any]] = None  # JSONB
+class WardrobeItemSchema(BaseModel):
+    id: str
+    filename: str
+    attributes: AttributesSchema
+    image_url: Optional[str] = None
 
 
-class ClosetItemCreate(ClosetItemBase):
-    pass
-
-
-class ClosetItemUpdate(BaseModel):
-    category: Optional[str] = None
-    sub_category: Optional[str] = None
-    season: Optional[List[str]] = None
-    mood_tags: Optional[List[str]] = None
-    features: Optional[Dict[str, Any]] = None
-
-
-class ClosetItemResponse(ClosetItemBase):
-    id: int
-    user_id: UUID
-    image_path: str
-
-    class Config:
-        from_attributes = True
+class WardrobeResponse(BaseModel):
+    success: bool
+    items: List[WardrobeItemSchema]
+    count: int
+    total_count: Optional[int] = None
+    has_more: Optional[bool] = None

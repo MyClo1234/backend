@@ -8,7 +8,8 @@ from jose import JWTError, jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.security import ALGORITHM, SECRET_KEY
 from app.services.wardrobe_manager import wardrobe_manager
-from app.models.schemas import WardrobeResponse, WardrobeItemSchema, AttributesSchema
+from app.schemas.wardrobe import WardrobeResponse, WardrobeItemSchema
+from app.schemas.extraction import ExtractionUrlResponse
 from app.models.wardrobe import ClosetItem
 from app.database import get_db
 from app.utils.response_helpers import create_success_response, handle_route_exception
