@@ -1,9 +1,21 @@
 trigger:
 - main
 - dev
+- test/*
 
 pool:
   name: 'codify-self-host-ci-cd'
+
+services:
+  postgres:
+    image: postgres:14
+    env:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: codify_test
+    ports:
+      - 5432:5432
+    options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
 steps:
   # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
@@ -19,8 +31,13 @@ steps:
       rm -rf .python_packages
       mkdir -p .python_packages/lib/site-packages
 
-      # 3. Install dependencies with uv
+      # 3. Install dependencies with uv (for artifact)
       uv pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+
+      # 4. Install dependencies for Testing (into venv)
+      source .venv/bin/activate
+      uv pip install -r requirements.txt
+      uv pip install -r requirements-dev.txt
 
       echo "Installed packages count:"
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | wc -l
@@ -29,7 +46,22 @@ steps:
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
     displayName: "Install dependencies with uv"
 
-  # 2) zip 전에 필수 파일 존재 체크
+  # 2) Run Tests
+  - script: |
+      set -euo pipefail
+      source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
+      source .venv/bin/activate
+      
+      export CI=true
+      export TEST_DB_NAME=codify_test
+      export POSTGRES_PASSWORD=password
+      export POSTGRES_USER=postgres
+      # Service container maps to localhost
+      
+      pytest -v
+    displayName: "Run Tests with pytest"
+
+  # 3) zip 전에 필수 파일 존재 체크
   - script: |
       set -euo pipefail
       test -f host.json

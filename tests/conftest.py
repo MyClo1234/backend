@@ -5,6 +5,7 @@ Pytest configuration and fixtures for backend tests.
 import sys
 from pathlib import Path
 import os
+from sqlalchemy import text
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -23,17 +24,47 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Use Azure PostgreSQL for tests
-# Create a test database URL from environment variables
-POSTGRES_USER = os.getenv("POSTGRES_USER", "codify_admin")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_SERVER = os.getenv(
-    "POSTGRES_SERVER", "codify-postgres.postgres.database.azure.com"
-)
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "codify")
+# Use Local PostgreSQL for tests by default
+# This prevents accidental connections to Azure/Production DB during local testing
+TEST_DB_USER = "choeseonghyeon"
+TEST_DB_HOST = "localhost"
+TEST_DB_PORT = "5432"
+TEST_DB_NAME = "codify_test"
 
-DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+# Allow overriding via environment variables (e.g. for CI)
+if os.getenv("CI"):
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL", f"postgresql://postgres:postgres@localhost:5432/{TEST_DB_NAME}"
+    )
+else:
+    # Local development default
+    DATABASE_URL = (
+        f"postgresql://{TEST_DB_USER}@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def init_test_db():
+    """
+    Create tables in the test database.
+    """
+    engine = create_engine(DATABASE_URL)
+
+    # Import all models to ensure they are registered with Base
+    # We import the routers or models here so that Base.metadata.create_all works
+    from app.domains.user.model import User
+    from app.domains.wardrobe.model import ClosetItem
+
+    # Add other models here if needed in the future
+
+    # Ensure the database exists (optional, mostly handled by createdb manually beforehand)
+    # But specifically create tables
+    Base.metadata.create_all(bind=engine)
+
+    yield
+
+    # Optional: Drop tables after tests to clean up
+    # Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
