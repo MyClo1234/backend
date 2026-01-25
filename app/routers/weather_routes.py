@@ -36,7 +36,7 @@ async def get_today_summary(
         # 데이터가 없다는 건 아직 02:15분이 안 지났거나 API 오류
         raise HTTPException(
             status_code=404,
-            detail="오늘 기상 정보가 아직 준비되지 않았습니다. (02:15 이후 시도)",
+            detail=f"오늘 기상 정보가 아직 준비되지 않았습니다. (02:15 이후 시도) - 상세: {msg}",
         )
 
     # Pydantic 모델 변환을 위해 객체에 메시지 추가 (JIT 속성 주입)

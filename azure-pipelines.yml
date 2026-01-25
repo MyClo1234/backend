@@ -9,23 +9,25 @@ steps:
   # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
   - script: |
       set -euo pipefail
-      python3 --version
-
-      python3 -m venv .venv
-      .venv/bin/python -m pip install -U pip
-
-      # 깨끗하게 재설치 (캐시/잔재 방지)
+      
+      # 1. Install uv
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
+      
+      # 2. Setup venv & clean target
+      uv venv .venv
       rm -rf .python_packages
       mkdir -p .python_packages/lib/site-packages
 
-      .venv/bin/python -m pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+      # 3. Install dependencies with uv
+      uv pip install -r requirements.txt --target ".python_packages/lib/site-packages"
 
       echo "Installed packages count:"
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | wc -l
 
       echo "Sample entries:"
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
-    displayName: "Install dependencies into .python_packages"
+    displayName: "Install dependencies with uv"
 
   # 2) zip 전에 필수 파일 존재 체크
   - script: |
@@ -63,7 +65,40 @@ steps:
       DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/publish?type=zip"
       echo "Deploy to: $DEPLOY_URL"
 
-      curl -f -v -u "${USER}:${PASS}" \
+      curl_retry() {
+        local retries=$1
+        shift
+
+        local count=0
+        until curl "$@"; do
+          exit=$?
+          wait=$((2 ** count))
+          count=$((count + 1))
+          if [ $count -lt $retries ]; then
+            echo "Retry $count/$retries exited $exit, retrying in $wait seconds..."
+            sleep $wait
+          else
+            echo "Retry $count/$retries exited $exit, no more retries left."
+            return $exit
+          fi
+        done
+        return 0
+      }
+
+      # -f: fail on HTTP error
+      # -v: verbose
+      # --retry 5: curl internal retry
+      # --retry-delay 5: delay between internal retries
+      # --retry-connrefused: retry on connection refused
+      # --connect-timeout 60: timeout for connection
+      # --max-time 300: max time for whole operation
+      
+      curl_retry 5 -f -v -u "${USER}:${PASS}" \
+        --retry 5 \
+        --retry-delay 5 \
+        --retry-connrefused \
+        --connect-timeout 60 \
+        --max-time 300 \
         -H "Content-Type: application/zip" \
         --data-binary @"$(Build.ArtifactStagingDirectory)/build.zip" \
         "$DEPLOY_URL"
