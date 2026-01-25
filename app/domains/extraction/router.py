@@ -2,11 +2,11 @@ import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.routers.user_routes import get_current_user
-from app.models.user import User
-from app.services.extractor import extractor
-from app.services.wardrobe_manager import wardrobe_manager
-from app.schemas.extraction import ExtractionResponse, ExtractionUrlResponse
+from app.domains.user.router import get_current_user
+from app.domains.user.model import User
+from .service import extractor
+from app.domains.wardrobe.service import wardrobe_manager
+from .schema import ExtractionResponse, ExtractionUrlResponse
 from app.schemas.common import AttributesSchema
 from app.utils.validators import validate_uploaded_file
 from app.utils.response_helpers import handle_route_exception

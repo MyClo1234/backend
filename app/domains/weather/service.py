@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Tuple, Optional
 from sqlalchemy.orm import Session
-from app.models.weather import DailyWeather
-from app.services.weather_client import KMAWeatherClient
+from .model import DailyWeather
+from .client import KMAWeatherClient
 
 
 class WeatherService:

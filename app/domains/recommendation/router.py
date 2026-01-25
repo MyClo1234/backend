@@ -1,9 +1,9 @@
 from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
-from app.services.wardrobe_manager import wardrobe_manager
-from app.services.recommender import recommender
-from app.schemas.recommendation import RecommendationResponse, OutfitScoreResponse
-from app.schemas.wardrobe import WardrobeItemSchema
+from app.domains.wardrobe.service import wardrobe_manager
+from .service import recommender
+from .schema import RecommendationResponse, OutfitScoreResponse
+from app.domains.wardrobe.schema import WardrobeItemSchema
 from app.schemas.common import AttributesSchema
 from app.utils.response_helpers import create_success_response, handle_route_exception
 

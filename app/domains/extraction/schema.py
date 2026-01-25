@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, Field
-from .common import AttributesSchema
+from app.schemas.common import AttributesSchema
 
 
 class ExtractionResponse(BaseModel):

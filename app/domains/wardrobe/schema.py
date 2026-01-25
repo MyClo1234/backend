@@ -1,6 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel
-from .common import AttributesSchema
+from app.schemas.common import AttributesSchema
 
 
 class WardrobeItemSchema(BaseModel):

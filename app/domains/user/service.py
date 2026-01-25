@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from uuid import UUID
-from app.models.user import User
-from app.schemas.user import UserUpdate
+from .model import User
+from .schema import UserUpdate
 
 
 def update_user_profile(db: Session, user_id: UUID, update_data: UserUpdate):

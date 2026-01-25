@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.models.user import User
-from app.schemas.user import UserCreate, UserLogin
+from app.domains.user.model import User
+from app.domains.user.schema import UserCreate
+from .schema import UserLogin
 from app.core.security import hash_password, verify_password, create_access_token
 from datetime import timedelta
 
@@ -32,10 +33,12 @@ def register_user(db: Session, user_data: UserCreate):
     db.refresh(db_user)
 
     # Generate token
-    access_token = create_access_token(data={
-        "sub": db_user.user_name,  # 호환성 유지
-        "user_id": str(db_user.id)  # UUID를 문자열로 추가
-    })
+    access_token = create_access_token(
+        data={
+            "sub": db_user.user_name,  # 호환성 유지
+            "user_id": str(db_user.id),  # UUID를 문자열로 추가
+        }
+    )
 
     return {"success": True, "token": access_token, "user": db_user}
 
@@ -48,9 +51,11 @@ def authenticate_user(db: Session, user_data: UserLogin):
         return None
 
     # Generate token
-    access_token = create_access_token(data={
-        "sub": user.user_name,  # 호환성 유지
-        "user_id": str(user.id)  # UUID를 문자열로 추가
-    })
+    access_token = create_access_token(
+        data={
+            "sub": user.user_name,  # 호환성 유지
+            "user_id": str(user.id),  # UUID를 문자열로 추가
+        }
+    )
 
     return {"success": True, "token": access_token, "user": user}

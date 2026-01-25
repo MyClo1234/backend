@@ -1,13 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.schemas.user import (
-    UserCreate,
-    UserResponse,
-    UserLogin,
-    AuthResponse,
-)  # (schemas 단계에서 만든 것)
-from app.services import auth_service  # (services 단계에서 만든 것)
+from app.domains.user.schema import UserCreate, UserResponse
+from .schema import UserLogin, AuthResponse
+from .service import register_user, authenticate_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -20,7 +16,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 )
 def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     # auth_service에서 처리하고 결과 반환
-    return auth_service.register_user(db, user_data)
+    return register_user(db, user_data)
 
 
 @router.post(
@@ -30,7 +26,7 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     description="아이디와 비밀번호를 검증하여 유효한 JWT 액세스 토큰을 발급합니다. 토큰은 이후 인증이 필요한 요청 헤더에 포함되어야 합니다.",
 )
 def login(user_data: UserLogin, db: Session = Depends(get_db)):
-    result = auth_service.authenticate_user(db, user_data)
+    result = authenticate_user(db, user_data)
     if not result:
         raise HTTPException(
             status_code=401, detail="아이디 또는 비밀번호가 잘못되었습니다."

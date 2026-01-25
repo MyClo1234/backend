@@ -18,7 +18,7 @@ from app.utils.validators import validate_file_extension
 
 # Import models inside methods to avoid circular imports where possible,
 # or use TYPE_CHECKING pattern. For simplicity in this file scope:
-from app.schemas.wardrobe import WardrobeResponse, WardrobeItemSchema
+from .schema import WardrobeResponse, WardrobeItemSchema
 from app.schemas.common import AttributesSchema, CategoryModel
 
 
@@ -150,7 +150,7 @@ class WardrobeManager:
         limit: int = 20,
     ) -> Dict[str, Any]:
         """Get paginated wardrobe items from DB (optimized for feed)"""
-        from app.models.wardrobe import ClosetItem
+        from .model import ClosetItem
 
         try:
             # 1. Base Query
@@ -212,7 +212,7 @@ class WardrobeManager:
         self, db: Session, item_id: str, user_id: UUID
     ) -> WardrobeItemSchema:
         """Get detailed item info including Blob metadata"""
-        from app.models.wardrobe import ClosetItem
+        from .model import ClosetItem
 
         # 1. Fetch from DB
         item = db.query(ClosetItem).filter(ClosetItem.id == item_id).first()
@@ -321,7 +321,7 @@ class WardrobeManager:
         image_url = image_client.url
 
         # 2. Save to Database
-        from app.models.wardrobe import ClosetItem
+        from .model import ClosetItem
 
         category_raw = attributes.get("category", {})
         if isinstance(category_raw, dict):

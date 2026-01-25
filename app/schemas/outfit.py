@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import date
 from uuid import UUID
-from app.schemas.wardrobe import ClosetItemResponse
+from app.domains.wardrobe.schema import WardrobeItemSchema
 
 
 class OutfitBase(BaseModel):
@@ -19,7 +19,7 @@ class OutfitCreate(OutfitBase):
 class OutfitResponse(OutfitBase):
     log_id: int
     user_id: UUID
-    items: List[ClosetItemResponse]
+    items: List[WardrobeItemSchema]
 
     class Config:
         from_attributes = True

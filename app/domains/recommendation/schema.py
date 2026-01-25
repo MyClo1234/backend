@@ -1,6 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel
-from .wardrobe import WardrobeItemSchema
+from app.domains.wardrobe.schema import WardrobeItemSchema
 
 
 class OutfitRecommendationSchema(BaseModel):

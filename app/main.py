@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import Config
 from app.routers.health_routes import health_router
-from app.routers.extraction_routes import extraction_router
-from app.routers.wardrobe_routes import wardrobe_router
-from app.routers.recommendation_routes import recommendation_router
-from app.routers.weather_routes import router as weather_router
+from app.domains.extraction.router import extraction_router
+from app.domains.wardrobe.router import wardrobe_router
+from app.domains.recommendation.router import recommendation_router
+from app.domains.weather.router import router as weather_router
 
 
 # 로깅 설정
@@ -21,7 +21,9 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.StreamHandler(sys.stdout),  # stdout으로 출력하여 Azure Functions에서도 보이도록
+        logging.StreamHandler(
+            sys.stdout
+        ),  # stdout으로 출력하여 Azure Functions에서도 보이도록
     ],
     force=True,  # 기존 핸들러가 있으면 덮어쓰기
 )
@@ -39,7 +41,7 @@ logging.getLogger("app").setLevel(logging.DEBUG)
 try:
     from app.database import engine, Base
     from app.models import user
-    from app.routers.auth import router as auth_router
+    from app.domains.auth.router import router as auth_router
 
     HAS_DB = True
 except ImportError:
@@ -84,20 +86,20 @@ def create_app() -> FastAPI:
 
     # User router
     if HAS_DB:
-        from app.routers.user_routes import router as user_router
+        from app.domains.user.router import router as user_router
 
         app.include_router(user_router, prefix="/api", tags=["Users"])
 
     # Swagger UI에서 Bearer 토큰 인증을 위한 OpenAPI 스키마 커스터마이징
     # 라우터를 모두 추가한 후에 설정해야 함
     logger = logging.getLogger(__name__)
-    
+
     def custom_openapi():
         if app.openapi_schema:
             return app.openapi_schema
         try:
             from fastapi.openapi.utils import get_openapi
-            
+
             openapi_schema = get_openapi(
                 title=app.title,
                 version=app.version,
@@ -114,36 +116,46 @@ def create_app() -> FastAPI:
                     "bearerFormat": "JWT",
                 }
             }
-            
+
             # 각 경로에 보안 요구사항 추가 (인증이 필요한 엔드포인트에만)
             auth_required_paths = ["/api/extract", "/api/users", "/api/wardrobe"]
             auth_excluded_paths = ["/api/auth/login", "/api/auth/signup", "/api/health"]
-            
+
             for path, path_item in openapi_schema.get("paths", {}).items():
                 if not isinstance(path_item, dict):
                     continue
-                    
+
                 for method, operation in path_item.items():
                     # HTTP 메서드만 처리하고, operation이 딕셔너리인지 확인
                     if method.lower() not in ["post", "put", "delete", "patch", "get"]:
                         continue
                     if not isinstance(operation, dict):
                         continue
-                    
+
                     # 인증이 필요한 경로인지 확인
-                    needs_auth = any(auth_path in path for auth_path in auth_required_paths)
-                    is_excluded = any(excluded_path == path for excluded_path in auth_excluded_paths)
-                    
+                    needs_auth = any(
+                        auth_path in path for auth_path in auth_required_paths
+                    )
+                    is_excluded = any(
+                        excluded_path == path for excluded_path in auth_excluded_paths
+                    )
+
                     if needs_auth and not is_excluded:
                         operation["security"] = [{"bearerAuth": []}]
-                        logger.debug(f"Added security requirement to {method.upper()} {path}")
-            
+                        logger.debug(
+                            f"Added security requirement to {method.upper()} {path}"
+                        )
+
             app.openapi_schema = openapi_schema
             return app.openapi_schema
         except Exception as e:
-            logger.error(f"Error generating OpenAPI schema: {type(e).__name__}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error generating OpenAPI schema: {type(e).__name__}: {str(e)}",
+                exc_info=True,
+            )
             # 에러 발생 시 기본 OpenAPI 스키마 반환
             from fastapi.openapi.utils import get_openapi
+
             return get_openapi(
                 title=app.title,
                 version=app.version,
