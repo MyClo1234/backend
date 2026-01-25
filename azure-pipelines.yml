@@ -6,16 +6,6 @@ trigger:
 pool:
   name: 'codify-self-host-ci-cd'
 
-services:
-  postgres:
-    image: postgres:14
-    env:
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: postgres
-      POSTGRES_DB: codify_test
-    ports:
-      - 5432:5432
-    options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
 steps:
   # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
@@ -53,10 +43,10 @@ steps:
       source .venv/bin/activate
       
       export CI=true
+      # Self-hosted agent setup (No Docker): use local Postgres directly
       export TEST_DB_NAME=codify_test
-      export POSTGRES_PASSWORD=password
-      export POSTGRES_USER=postgres
-      # Service container maps to localhost
+      export POSTGRES_USER=choeseonghyeon
+      # export POSTGRES_PASSWORD=password # Not needed for local trust auth usually
       
       pytest -v
     displayName: "Run Tests with pytest"
