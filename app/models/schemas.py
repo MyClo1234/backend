@@ -6,64 +6,64 @@ from pydantic import BaseModel, Field
 # Shared/Nested Models
 # -----------------------------
 class CategoryModel(BaseModel):
-    main: str
-    sub: str
-    confidence: float
+    main: Optional[str] = None
+    sub: Optional[str] = None
+    confidence: Optional[float] = None
 
 
 class ColorModel(BaseModel):
-    primary: str
-    secondary: List[str]
-    tone: str
-    confidence: float
+    primary: Optional[str] = None
+    secondary: Optional[List[str]] = None
+    tone: Optional[str] = None
+    confidence: Optional[float] = None
 
 
 class PatternModel(BaseModel):
-    type: str
-    confidence: float
+    type: Optional[str] = None
+    confidence: Optional[float] = None
 
 
 class MaterialModel(BaseModel):
-    guess: str
-    confidence: float
+    guess: Optional[str] = None
+    confidence: Optional[float] = None
 
 
 class FitModel(BaseModel):
-    type: str
-    confidence: float
+    type: Optional[str] = None
+    confidence: Optional[float] = None
 
 
 class DetailsModel(BaseModel):
-    neckline: str
-    sleeve: str
-    length: str
-    closure: List[str]
-    print_or_logo: bool
+    neckline: Optional[str] = None
+    sleeve: Optional[str] = None
+    length: Optional[str] = None
+    closure: Optional[List[str]] = None
+    print_or_logo: Optional[bool] = None
 
 
 class ScoresModel(BaseModel):
-    formality: float
-    warmth: float
-    season: List[str]
-    versatility: float
+    formality: Optional[float] = None
+    warmth: Optional[float] = None
+    season: Optional[List[str]] = None
+    versatility: Optional[float] = None
 
 
 class MetaModel(BaseModel):
-    is_layering_piece: bool
+    is_layering_piece: Optional[bool] = None
     notes: Optional[str] = None
 
 
 class AttributesSchema(BaseModel):
-    category: CategoryModel
-    color: ColorModel
-    pattern: PatternModel
-    material: MaterialModel
-    fit: FitModel
-    details: DetailsModel
-    style_tags: List[str]
-    scores: ScoresModel
-    meta: MetaModel
-    confidence: float
+    category: Optional[CategoryModel] = None
+    color: Optional[ColorModel] = None
+    pattern: Optional[PatternModel] = None
+    material: Optional[MaterialModel] = None
+    fit: Optional[FitModel] = None
+    details: Optional[DetailsModel] = None
+    style_tags: Optional[List[str]] = None
+    scores: Optional[ScoresModel] = None
+    meta: Optional[MetaModel] = None
+    confidence: Optional[float] = None
 
 
 # -----------------------------
@@ -101,6 +101,8 @@ class WardrobeResponse(BaseModel):
     success: bool
     items: List[WardrobeItemSchema]
     count: int
+    total_count: Optional[int] = None
+    has_more: Optional[bool] = None
 
 
 class OutfitRecommendationSchema(BaseModel):
