@@ -78,21 +78,18 @@ class WeatherService:
         failed = total - success
 
         if success > 0:
-            # 성공한 지역 데이터만 저장 (기존 데이터는 업데이트)
+            # 기존 데이터 일괄 조회 (nx, ny 기반 매칭을 위해 base_date 기준 전체 로드)
+            existing_records = (
+                db.query(DailyWeather).filter(DailyWeather.base_date == today_str).all()
+            )
+            # lookup dict: (nx, ny) -> record
+            lookup = {(r.nx, r.ny): r for r in existing_records}
+
             for region, weather_data in all_weathers.items():
-                # 기존 데이터 조회
-                existing = (
-                    db.query(DailyWeather)
-                    .filter_by(
-                        base_date=today_str,
-                        nx=weather_data.nx,
-                        ny=weather_data.ny,
-                    )
-                    .first()
-                )
+                existing = lookup.get((weather_data.nx, weather_data.ny))
 
                 if existing:
-                    # 업데이트
+                    # 업데이트 (메모리상 객체 수정)
                     existing.region = weather_data.region
                     existing.min_temp = weather_data.min_temp
                     existing.max_temp = weather_data.max_temp
