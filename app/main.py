@@ -91,6 +91,10 @@ def create_app() -> FastAPI:
     app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
     app.include_router(recommendation_router, prefix="/api", tags=["Recommendation"])
 
+    from app.domains.chat.router import chat_router
+
+    app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])
+
     # User router
     if HAS_DB:
         from app.domains.user.router import router as user_router

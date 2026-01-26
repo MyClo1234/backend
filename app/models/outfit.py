@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Date,
+    ForeignKey,
+    Table,
+    Boolean,
+    Text,
+    text,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from app.database import Base
@@ -30,4 +40,25 @@ class OutfitLog(Base):
     # Relationships
     owner = relationship("User", back_populates="outfit_logs")
     outfit_items = relationship("OutfitItem", back_populates="log")
-    items = relationship("ClosetItem", secondary="outfit_items", viewonly=True)
+    items = relationship("ClosesetItem", secondary="outfit_items", viewonly=True)
+
+
+class TodaysPick(Base):
+    __tablename__ = "todays_picks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    date = Column(Date, nullable=False, server_default=text("now()"))
+
+    top_id = Column(Integer, ForeignKey("closet_items.id"), nullable=True)
+    bottom_id = Column(Integer, ForeignKey("closet_items.id"), nullable=True)
+
+    image_url = Column(String, nullable=True)  # 나노바나나가 생성한 이미지 경로 (Blob)
+    reasoning = Column(Text, nullable=True)
+    weather_snapshot = Column(JSONB, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    # Relationships
+    user = relationship("User")
+    top = relationship("ClosetItem", foreign_keys=[top_id])
+    bottom = relationship("ClosetItem", foreign_keys=[bottom_id])

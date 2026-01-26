@@ -6,6 +6,8 @@ from app.ai.workflows.recommendation_workflow import recommend_outfits
 from app.domains.weather.service import weather_service
 from app.domains.weather.utils import dfs_xy_conv
 from app.domains.wardrobe.service import wardrobe_manager
+from app.models.outfit import TodaysPick
+from app.ai.nodes.generation_nodes import nano_banana_node
 
 
 class OutfitRecommender:
@@ -184,9 +186,9 @@ class OutfitRecommender:
                             "score": cached["score"],
                             "reasoning": cached["reasoning"],
                             "style_description": cached["style_description"],
-                            "reasons": [cached["reasoning"]]
-                            if cached.get("reasoning")
-                            else [],
+                            "reasons": (
+                                [cached["reasoning"]] if cached.get("reasoning") else []
+                            ),
                         }
                     )
             if result:
@@ -390,14 +392,46 @@ class OutfitRecommender:
 
         best_pick = recommendations[0]
 
-        return {
-            "success": True,
-            "weather_summary": weather_summary,
-            "temp_min": min_temp,
-            "temp_max": max_temp,
-            "outfit": best_pick,
-            "message": "오늘의 날씨에 딱 맞는 추천 코디입니다.",
-        }
+    def save_todays_pick(
+        self,
+        db: Session,
+        user_id: UUID,
+        recommendation: Dict[str, Any],
+        weather_info: Dict[str, Any],
+    ) -> TodaysPick:
+        """추천된 오늘의 코디를 DB에 저장하고 기존 활성 픽을 비활성화"""
+        try:
+            # 1. 기존 활성 픽 비활성화
+            db.query(TodaysPick).filter(
+                TodaysPick.user_id == user_id, TodaysPick.is_active == True
+            ).update({"is_active": False})
+
+            # 2. 새 픽 저장
+            from datetime import date
+
+            top_id = recommendation.get("top", {}).get("id")
+            bottom_id = recommendation.get("bottom", {}).get("id")
+
+            new_pick = TodaysPick(
+                user_id=user_id,
+                date=date.today(),
+                top_id=int(top_id) if top_id else None,
+                bottom_id=int(bottom_id) if bottom_id else None,
+                image_url=recommendation.get("generated_image_url"),
+                reasoning=recommendation.get("reasoning"),
+                weather_snapshot=weather_info,
+                is_active=True,
+            )
+
+            db.add(new_pick)
+            db.commit()
+            db.refresh(new_pick)
+            return new_pick
+
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error saving Today's Pick: {e}")
+            raise e
 
 
 recommender = OutfitRecommender()
