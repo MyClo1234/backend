@@ -6,7 +6,7 @@ from app.domains.generation.schema import (
     OutfitGenerationResponse,
 )
 from app.ai.clients.azure_dalle_client import azure_dalle_client
-from app.services.blob_storage import get_blob_storage_service
+from app.utils.blob_storage import get_blob_storage_service
 from app.domains.wardrobe.schema import WardrobeItemSchema
 
 logger = logging.getLogger(__name__)
@@ -43,21 +43,33 @@ class GenerationService:
                     parts.append(main)
                 elif is_valid_value(sub):
                     parts.append(sub)
-            
+
             # If no valid category, use default
             if not parts:
                 parts.append("clothing item")
 
             # Extract color
-            if attrs.color and attrs.color.primary and is_valid_value(attrs.color.primary):
+            if (
+                attrs.color
+                and attrs.color.primary
+                and is_valid_value(attrs.color.primary)
+            ):
                 parts.insert(0, attrs.color.primary)
 
             # Extract pattern
-            if attrs.pattern and attrs.pattern.type and is_valid_value(attrs.pattern.type):
+            if (
+                attrs.pattern
+                and attrs.pattern.type
+                and is_valid_value(attrs.pattern.type)
+            ):
                 parts.append(f"with {attrs.pattern.type} pattern")
 
             # Extract material
-            if attrs.material and attrs.material.guess and is_valid_value(attrs.material.guess):
+            if (
+                attrs.material
+                and attrs.material.guess
+                and is_valid_value(attrs.material.guess)
+            ):
                 parts.append(f"made of {attrs.material.guess}")
 
             description = " ".join(parts).strip()

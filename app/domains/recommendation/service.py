@@ -7,6 +7,7 @@ from app.core.regions import get_nearest_region
 from app.domains.weather.service import weather_service
 from app.domains.weather.utils import dfs_xy_conv
 from app.domains.wardrobe.service import wardrobe_manager
+from app.domains.recommendation.model import TodaysPick
 
 
 class OutfitRecommender:
@@ -156,8 +157,14 @@ class OutfitRecommender:
         )
         color_score = self.calculate_color_harmony(top_color, bottom_color)
 
-        top_styles = [s for s in self._as_list(top_attrs.get("style_tags")) if isinstance(s, str)]
-        bottom_styles = [s for s in self._as_list(bottom_attrs.get("style_tags")) if isinstance(s, str)]
+        top_styles = [
+            s for s in self._as_list(top_attrs.get("style_tags")) if isinstance(s, str)
+        ]
+        bottom_styles = [
+            s
+            for s in self._as_list(bottom_attrs.get("style_tags"))
+            if isinstance(s, str)
+        ]
         style_score = self.calculate_style_match(top_styles, bottom_styles)
 
         top_scores = self._as_dict(top_attrs.get("scores"))
@@ -166,11 +173,15 @@ class OutfitRecommender:
         top_formality_raw = top_scores.get("formality", 0.5)
         bottom_formality_raw = bottom_scores.get("formality", 0.5)
         try:
-            top_formality = float(top_formality_raw) if top_formality_raw is not None else 0.5
+            top_formality = (
+                float(top_formality_raw) if top_formality_raw is not None else 0.5
+            )
         except (TypeError, ValueError):
             top_formality = 0.5
         try:
-            bottom_formality = float(bottom_formality_raw) if bottom_formality_raw is not None else 0.5
+            bottom_formality = (
+                float(bottom_formality_raw) if bottom_formality_raw is not None else 0.5
+            )
         except (TypeError, ValueError):
             bottom_formality = 0.5
         formality_score = self.calculate_formality_match(
@@ -246,9 +257,9 @@ class OutfitRecommender:
                             "score": cached["score"],
                             "reasoning": cached["reasoning"],
                             "style_description": cached["style_description"],
-                            "reasons": [cached["reasoning"]]
-                            if cached.get("reasoning")
-                            else [],
+                            "reasons": (
+                                [cached["reasoning"]] if cached.get("reasoning") else []
+                            ),
                         }
                     )
             if result:
@@ -306,7 +317,9 @@ class OutfitRecommender:
         for top in tops:
             for bottom in bottoms:
                 score, reasons = self.calculate_outfit_score(top, bottom)
-                top_cat = self._as_dict(self._as_dict(top.get("attributes")).get("category"))
+                top_cat = self._as_dict(
+                    self._as_dict(top.get("attributes")).get("category")
+                )
                 bottom_cat = self._as_dict(
                     self._as_dict(bottom.get("attributes")).get("category")
                 )
@@ -495,8 +508,49 @@ class OutfitRecommender:
             "temp_min": min_temp,
             "temp_max": max_temp,
             "outfit": best_pick,
-            "message": "오늘의 날씨에 딱 맞는 추천 코디입니다.",
+            "message": "추천이 완료되었습니다.",
         }
+
+    def save_todays_pick(
+        self,
+        db: Session,
+        user_id: UUID,
+        recommendation: Dict[str, Any],
+        weather_info: Dict[str, Any],
+    ) -> TodaysPick:
+        """추천된 오늘의 코디를 DB에 저장하고 기존 활성 픽을 비활성화"""
+        try:
+            # 1. 기존 활성 픽 비활성화
+            db.query(TodaysPick).filter(
+                TodaysPick.user_id == user_id, TodaysPick.is_active == True
+            ).update({"is_active": False})
+
+            # 2. 새 픽 저장
+            from datetime import date
+
+            top_id = recommendation.get("top", {}).get("id")
+            bottom_id = recommendation.get("bottom", {}).get("id")
+
+            new_pick = TodaysPick(
+                user_id=user_id,
+                date=date.today(),
+                top_id=int(top_id) if top_id else None,
+                bottom_id=int(bottom_id) if bottom_id else None,
+                image_url=recommendation.get("generated_image_url"),
+                reasoning=recommendation.get("reasoning"),
+                weather_snapshot=weather_info,
+                is_active=True,
+            )
+
+            db.add(new_pick)
+            db.commit()
+            db.refresh(new_pick)
+            return new_pick
+
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error saving Today's Pick: {e}")
+            raise e
 
 
 recommender = OutfitRecommender()

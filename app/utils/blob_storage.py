@@ -31,19 +31,20 @@ class BlobStorageService:
         self.container_name = Config.AZURE_STORAGE_CONTAINER_NAME
 
         if not self.account_name or not self.account_key:
-            raise ValueError(
-                "AZURE_STORAGE_ACCOUNT_NAME or AZURE_STORAGE_ACCOUNT_KEY is not set"
-            )
+            # 로컬 개발 환경 등에서 설정을 건너뛸 수 있도록 로그만 남기고 pass 할 수도 있음
+            # 하지만 서비스 사용 시에는 필수
+            pass
 
         try:
-            account_url = f"https://{self.account_name}.blob.core.windows.net"
-            self.blob_service_client = BlobServiceClient(
-                account_url=account_url, credential=self.account_key
-            )
-            self._ensure_container_exists()
+            if self.account_name and self.account_key:
+                account_url = f"https://{self.account_name}.blob.core.windows.net"
+                self.blob_service_client = BlobServiceClient(
+                    account_url=account_url, credential=self.account_key
+                )
+                self._ensure_container_exists()
         except Exception as e:
             logger.error(f"Failed to initialize Blob Storage client: {e}")
-            raise
+            # raise # 초기화 실패 시 에러를 던질지 여부
 
     def _ensure_container_exists(self):
         """컨테이너가 존재하는지 확인하고, 없으면 생성"""
@@ -64,18 +65,10 @@ class BlobStorageService:
         """
         Blob Storage에 저장할 파일명 생성
         형식: users/{user_id}/{yyyyMMdd}/{uuid}.{ext}
-
-        Args:
-            user_id: 사용자 UUID
-            original_filename: 원본 파일명 (확장자 추출용)
-
-        Returns:
-            생성된 Blob 경로 (예: users/550e8400-e29b-41d4-a716-446655440000/20241223/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg)
         """
         # 현재 날짜/시간
         now = datetime.now()
         date_str = now.strftime("%Y%m%d")  # 경로용: yyyyMMdd
-        timestamp = now.strftime("%Y%m%d%H%M%S")  # 날짜 정보: yyyyMMddHHmmss
 
         # UUID 생성 (파일명용)
         file_uuid = str(uuid.uuid4())
@@ -100,22 +93,6 @@ class BlobStorageService:
     ) -> dict:
         """
         이미지를 Azure Blob Storage에 업로드
-
-        Args:
-            image_bytes: 이미지 바이트 데이터
-            user_id: 사용자 ID 또는 고유 식별자
-            original_filename: 원본 파일명 (확장자 추출용)
-            content_type: MIME 타입 (선택사항, 자동 감지 가능)
-
-        Returns:
-            {
-                "blob_name": 저장된 파일명,
-                "blob_url": Blob Storage URL,
-                "item_id": 아이템 ID (파일명에서 확장자 제거)
-            }
-
-        Raises:
-            AzureError: 업로드 실패 시
         """
         try:
             # 파일명 생성
@@ -149,11 +126,9 @@ class BlobStorageService:
             # Blob URL 생성
             blob_url = blob_client.url
 
-            # Item ID는 파일명의 UUID만 사용 (확장자 제거)
-            # blob_name: users/{user_id}/{yyyyMMdd}/{uuid}.{ext}
-            # item_id: {uuid}만 추출
-            file_uuid_with_ext = os.path.basename(blob_name)  # {uuid}.{ext}
-            item_id = os.path.splitext(file_uuid_with_ext)[0]  # {uuid}만
+            # Item ID는 파일명의 UUID만 사용
+            file_uuid_with_ext = os.path.basename(blob_name)
+            item_id = os.path.splitext(file_uuid_with_ext)[0]
 
             logger.info(f"Image uploaded successfully: {blob_name}")
 
@@ -166,44 +141,8 @@ class BlobStorageService:
             logger.error(f"Unexpected error during image upload: {e}")
             raise
 
-    def delete_image(self, blob_name: str) -> bool:
-        """
-        Blob Storage에서 이미지 삭제
 
-        Args:
-            blob_name: 삭제할 Blob 이름
-
-        Returns:
-            삭제 성공 여부
-        """
-        try:
-            blob_client = self.blob_service_client.get_blob_client(
-                container=self.container_name, blob=blob_name
-            )
-            blob_client.delete_blob()
-            logger.info(f"Image deleted successfully: {blob_name}")
-            return True
-        except AzureError as e:
-            logger.error(f"Failed to delete image from Blob Storage: {e}")
-            return False
-
-    def get_image_url(self, blob_name: str) -> str:
-        """
-        Blob Storage의 이미지 URL 가져오기
-
-        Args:
-            blob_name: Blob 이름
-
-        Returns:
-            Blob Storage URL
-        """
-        blob_client = self.blob_service_client.get_blob_client(
-            container=self.container_name, blob=blob_name
-        )
-        return blob_client.url
-
-
-# 싱글톤 인스턴스 (선택사항)
+# 싱글톤 인스턴스
 _blob_storage_service: Optional[BlobStorageService] = None
 
 

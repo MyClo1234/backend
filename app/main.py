@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import Config
-from app.routers.health_routes import health_router
+from app.core.health import health_router
 from app.domains.extraction.router import extraction_router
 from app.domains.wardrobe.router import wardrobe_router
 from app.domains.recommendation.router import recommendation_router
@@ -45,7 +45,13 @@ try:
 
     # Ensure all SQLAlchemy models are imported/registered before first DB usage.
     # Without this, relationships like relationship("OutfitLog") may fail to resolve.
-    import app.models as _models  # noqa: F401
+    # import app.models as _models  # noqa: F401
+    from app.domains.user.model import User
+    from app.domains.wardrobe.model import ClosetItem
+    from app.domains.outfit.model import OutfitLog, OutfitItem
+    from app.domains.chat.model import ChatSession, ChatMessage
+    from app.domains.weather.model import DailyWeather
+    from app.domains.recommendation.model import TodaysPick
     from app.domains.auth.router import router as auth_router
 
     HAS_DB = True
@@ -92,6 +98,10 @@ def create_app() -> FastAPI:
     app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
     app.include_router(recommendation_router, prefix="/api", tags=["Recommendation"])
     app.include_router(generation_router, prefix="/api", tags=["Generation"])
+
+    from app.domains.chat.router import chat_router
+
+    app.include_router(chat_router, prefix="/api/chat", tags=["Chat"])
 
     # User router
 
