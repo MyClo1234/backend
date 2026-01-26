@@ -9,6 +9,7 @@ from app.routers.health_routes import health_router
 from app.domains.extraction.router import extraction_router
 from app.domains.wardrobe.router import wardrobe_router
 from app.domains.recommendation.router import recommendation_router
+from app.domains.generation.router import generation_router
 from app.domains.weather.router import router as weather_router
 
 
@@ -90,8 +91,10 @@ def create_app() -> FastAPI:
     app.include_router(extraction_router, prefix="/api", tags=["Extraction"])
     app.include_router(wardrobe_router, prefix="/api", tags=["Wardrobe"])
     app.include_router(recommendation_router, prefix="/api", tags=["Recommendation"])
+    app.include_router(generation_router, prefix="/api", tags=["Generation"])
 
     # User router
+
     if HAS_DB:
         from app.domains.user.router import router as user_router
 
@@ -131,7 +134,9 @@ def create_app() -> FastAPI:
                 "/api/users",
                 "/api/wardrobe",
                 "/api/recommend",
+                "/api/generation",
             ]
+
             auth_excluded_paths = ["/api/auth/login", "/api/auth/signup", "/api/health"]
 
             for path, path_item in openapi_schema.get("paths", {}).items():
