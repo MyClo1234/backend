@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from uuid import UUID
@@ -18,6 +19,8 @@ from app.utils.validators import validate_file_extension
 
 # Import models inside methods to avoid circular imports where possible,
 # or use TYPE_CHECKING pattern. For simplicity in this file scope:
+
+logger = logging.getLogger(__name__)
 from .schema import WardrobeResponse, WardrobeItemSchema
 from app.core.schemas import AttributesSchema, CategoryModel
 
@@ -323,26 +326,40 @@ class WardrobeManager:
         # 2. Save to Database
         from .model import ClosetItem
 
+        # Extract primary category and sub-category
         category_raw = attributes.get("category", {})
         if isinstance(category_raw, dict):
-            category = category_raw.get("main", "UNKNOWN")
-            sub_category = category_raw.get("sub") or attributes.get("sub_category")
+            category = (category_raw.get("main") or "UNKNOWN").upper()
+            sub_category = (
+                category_raw.get("sub") or attributes.get("sub_category") or "UNKNOWN"
+            ).upper()
         else:
-            category = str(category_raw) if category_raw else "UNKNOWN"
-            sub_category = attributes.get("sub_category")
+            category = str(category_raw).upper() if category_raw else "UNKNOWN"
+            sub_category = (attributes.get("sub_category") or "UNKNOWN").upper()
 
+        # Features should include EVERYTHING as per user request
         features = attributes.copy()
-        for key in ["category", "sub_category", "season", "mood_tags"]:
-            if key in features:
-                del features[key]
 
-        season = attributes.get("season", [])
-        if isinstance(season, str):
-            season = [season]
+        # Robust extraction of season and mood_tags
+        # Try top-level first, then nested in scores
+        season = attributes.get("season")
+        if not season and "scores" in attributes:
+            season = attributes["scores"].get("season")
 
-        mood_tags = attributes.get("mood_tags", [])
-        if isinstance(mood_tags, str):
-            mood_tags = [mood_tags]
+        if not season:
+            season = []
+        elif isinstance(season, str):
+            season = [season.upper()]
+        else:
+            season = [str(s).upper() for s in season]
+
+        mood_tags = attributes.get("mood_tags")
+        if not mood_tags:
+            mood_tags = []
+        elif isinstance(mood_tags, str):
+            mood_tags = [mood_tags.upper()]
+        else:
+            mood_tags = [str(m).upper() for m in mood_tags]
 
         db_item = ClosetItem(
             user_id=user_id,

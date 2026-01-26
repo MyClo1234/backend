@@ -88,3 +88,44 @@ Return ONLY a JSON array of {count} objects:
 }}
 
 JSON only, no markdown."""
+
+
+def build_todays_pick_prompt(
+    weather_summary: str,
+    temp_min: float,
+    temp_max: float,
+    tops_list: str,
+    bottoms_list: str,
+    context: str = "특별한 요청 없음",
+) -> str:
+    """Today's Pick 전용 프롬프트 (v2 style)"""
+    return f"""당신은 전문 패션 스타일리스트입니다.
+오늘 날씨와 사용자의 옷장, 그리고 사용자의 특별한 요청사항을 고려하여 최적의 코디를 추천해주세요.
+
+**날씨 정보:**
+- 날씨: {weather_summary}
+- 최저/최고 기온: {temp_min}°C ~ {temp_max}°C
+
+**상의 목록:**
+{tops_list}
+
+**하의 목록:**
+{bottoms_list}
+
+**사용자 요청 및 문맥:**
+{context}
+
+반드시 다음 JSON 형식으로만 응답하세요 (다른 텍스트 출력 금지):
+{{
+  "top_id": "선택한 상의 ID",
+  "bottom_id": "선택한 하의 ID",  
+  "reasoning": "이 조합을 선택한 이유 (한국어, 2-3문장)",
+  "score": 0.0~1.0 사이의 추천 신뢰도
+}}
+
+규칙:
+- 사용자 요청 및 문맥(TPO 등)을 최우선으로 반영
+- 날씨에 적합한 보온성/통풍성 고려
+- 색상 조화 및 스타일 통일성 유지
+- JSON만 출력, 마크다운 코드블록(```) 사용 금지
+"""

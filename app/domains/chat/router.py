@@ -11,15 +11,16 @@ from app.domains.user.router import get_current_user
 from app.domains.user.model import User
 from app.ai.workflows.chat_workflow import get_chat_workflow
 from app.ai.schemas.workflow_state import ChatState
+from .schema import ChatRequest
 
 logger = logging.getLogger(__name__)
 
 chat_router = APIRouter()
 
 
-@chat_router.post("/send")
+@chat_router.post("/chat")
 async def send_message(
-    message: str,
+    request: ChatRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -28,15 +29,21 @@ async def send_message(
     # 초기 상태 설정
     initial_state: ChatState = {
         "messages": [],  # 히스토리는 나중에 구현
-        "user_query": message,
-        "context": {"user_id": str(current_user.id), "is_pick_updated": False},
+        "user_query": request.query,
+        "context": {
+            "user_id": str(current_user.id),
+            "is_pick_updated": False,
+            "lat": request.lat,
+            "lon": request.lon,
+        },
         "response": None,
         "recommendations": None,
+        "todays_pick": None,
     }
 
     try:
         workflow = get_chat_workflow()
-        final_state = workflow.invoke(initial_state)
+        final_state = await workflow.ainvoke(initial_state)
 
         return {
             "success": True,
@@ -45,6 +52,7 @@ async def send_message(
                 "is_pick_updated", False
             ),
             "recommendations": final_state.get("recommendations"),
+            "todays_pick": final_state.get("todays_pick"),
         }
 
     except Exception as e:

@@ -35,3 +35,9 @@ class ChatSessionResponse(ChatSessionBase):
 
     class Config:
         from_attributes = True
+
+
+class ChatRequest(BaseModel):
+    query: str
+    lat: float = 37.5665
+    lon: float = 126.9780

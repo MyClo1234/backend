@@ -2,21 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Attach to Python Functions",
-      "type": "python",
-      "request": "attach",
-      "port": 9091,
-      "preLaunchTask": "func: host start"
-    },
-    {
-      "name": "Attach to Python Functions",
+      "name": "Run Backend (8000)",
       "type": "debugpy",
-      "request": "attach",
-      "connect": {
-        "host": "localhost",
-        "port": 9091
-      },
-      "preLaunchTask": "func: host start"
+      "request": "launch",
+      "module": "app.main",
+      "console": "integratedTerminal"
     }
   ]
 }

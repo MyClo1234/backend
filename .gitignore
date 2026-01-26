@@ -67,3 +67,4 @@ __queuestorage__
 __tablestorage__
 AzuriteConfig
 google_credentials.json
+service_account.json

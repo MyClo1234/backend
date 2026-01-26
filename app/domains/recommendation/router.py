@@ -43,7 +43,7 @@ def get_user_id_from_token(
 
 
 @recommendation_router.post("/recommend/todays-pick", response_model=TodaysPickResponse)
-def recommend_todays_pick(
+async def recommend_todays_pick(
     request: TodaysPickRequest,
     user_id: UUID = Depends(get_user_id_from_token),
     db: Session = Depends(get_db),
@@ -55,7 +55,9 @@ def recommend_todays_pick(
     사용자의 옷장에서 현재 날씨/계절에 적합한 옷을 찾아 추천합니다.
     """
     try:
-        result = recommender.get_todays_pick(db, user_id, request.lat, request.lon)
+        result = await recommender.get_todays_pick(
+            db, user_id, request.lat, request.lon
+        )
         return result
     except Exception as e:
         raise handle_route_exception(e)

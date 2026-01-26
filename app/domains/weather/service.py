@@ -1,11 +1,15 @@
+import logging
 from datetime import datetime
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from .model import DailyWeather
 from .client import KMAWeatherClient
+from .utils import dfs_xy_conv
 import asyncio
 from app.core.regions import KOREA_REGIONS
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 
 class WeatherService:
@@ -182,6 +186,58 @@ class WeatherService:
         weather_obj.current_rain_type = current_rain_type
 
         return weather_obj, msg
+
+    async def get_weather_info(
+        self, db: Session, lat: float, lon: float
+    ) -> Dict[str, Any]:
+        """
+        코디 추천 엔진에서 사용하기 위한 날씨 정보 간편 반환 함수
+        """
+        from app.core.regions import get_nearest_region
+
+        # 1. 좌표 변환 (lat, lon -> nx, ny)
+        grid = dfs_xy_conv("toGRID", lat, lon)
+        nx, ny = int(grid.get("x", 60)), int(grid.get("y", 127))
+
+        # 2. 가장 가까운 지역명 가져오기
+        region_name, _ = get_nearest_region(lat, lon)
+
+        try:
+            # 3. 데이터 조회 (DB 또는 API)
+            weather_obj, _ = await self.get_daily_weather_summary(
+                db, nx, ny, region_name
+            )
+
+            if weather_obj:
+                min_temp = weather_obj.min_temp
+                max_temp = weather_obj.max_temp
+
+                # 가독성을 위한 요약 텍스트 생성 (OutfitRecommender 로직 통합)
+                summary = (
+                    f"{weather_obj.region or '현위치'} 기온 {min_temp}°C ~ {max_temp}°C"
+                )
+                if max_temp >= 24:
+                    summary += " (여름 날씨)"
+                elif max_temp <= 12:
+                    summary += " (겨울 날씨)"
+                else:
+                    summary += " (선선한 날씨)"
+
+                return {
+                    "summary": summary,
+                    "temp_min": min_temp,
+                    "temp_max": max_temp,
+                    "region": region_name,
+                }
+        except Exception as e:
+            logger.error(f"Error in get_weather_info: {e}", exc_info=True)
+
+        return {
+            "summary": "날씨 정보를 가져올 수 없습니다.",
+            "temp_min": 0,
+            "temp_max": 0,
+            "region": region_name,
+        }
 
     def _parse_weather_data(
         self, items: list

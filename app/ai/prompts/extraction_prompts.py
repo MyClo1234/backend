@@ -322,6 +322,13 @@ DEFAULT_OBJ = {
     "sleeve": "unknown",
     "length": "unknown",
     "closure": ["none"],
+    "details": {
+        "neckline": "unknown",
+        "sleeve": "unknown",
+        "length": "unknown",
+        "closure": ["none"],
+        "print_or_logo": False,
+    },
     "style_tags": [],
     "scores": {
         "formality": 0.3,
@@ -347,48 +354,62 @@ SYSTEM_PROMPT = (
     "If uncertain, use 'unknown' or null and lower confidence."
 )
 
-# USER_PROMPT
-USER_PROMPT = f"""Extract attributes for the single clothing item in the image for a weather-based styling service.
+# USER_PROMPT - 테스트로 검증된 버전
+USER_PROMPT = """당신은 패션 아이템 분석 전문가입니다.
+주어진 옷 사진을 보고 다음 정보를 JSON 형식으로 정확하게 추출해주세요.
 
-Return ONLY ONE JSON object with EXACTLY these top-level keys:
-{', '.join(sorted(list(REQUIRED_TOP_KEYS)))}
+반드시 다음 JSON 형식으로 응답하세요 (JSON만 출력, 마크다운 코드블록 사용 금지):
+{
+  "category": {
+    "main": "상위 카테고리 (outer/top/bottom/onepiece/shoes/accessory 중 하나)",
+    "sub": "하위 카테고리 (coat/jacket/hoodie/tshirt/shirt/sweater/jeans/slacks/skirt/dress 등)",
+    "confidence": 0.0~1.0
+  },
+  "color": {
+    "primary": "주요 색상 (black/white/gray/navy/blue/beige/brown/khaki/green/red/pink 등)",
+    "secondary": ["보조 색상들"],
+    "tone": "톤 (light/dark/muted/vivid/pastel/neutral 등)",
+    "confidence": 0.0~1.0
+  },
+  "material": {
+    "guess": "소재 (cotton/denim/knit/wool/leather/poly/linen 등)",
+    "confidence": 0.0~1.0
+  },
+  "pattern": {
+    "type": "패턴 (solid/stripe/check/dot/floral/graphic 등)",
+    "confidence": 0.0~1.0
+  },
+  "fit": {
+    "type": "핏 (tight/slim/regular/loose/oversized/wide 등)",
+    "confidence": 0.0~1.0
+  },
+  "neckline": "넥라인 (crew/vneck/collar/turtleneck/hood 등, 해당 시)",
+  "sleeve": "소매 (sleeveless/short/long 등, 해당 시)",
+  "length": "기장 (cropped/waist/hip/knee/long 등)",
+  "closure": ["여밈 방식 (zipper/button/none 등)"],
+  "style_tags": ["스타일 태그 (minimal/classic/street/sporty/casual/business/formal 등)"],
+  "scores": {
+    "formality": 0.0~1.0 (캐주얼 0 ~ 포멀 1),
+    "warmth": 0.0~1.0 (시원함 0 ~ 따뜻함 1),
+    "thickness": 0.0~1.0 (얇음 0.1 ~ 두꺼움 1.0),
+    "season": ["적합한 계절들 (spring/summer/fall/winter/all-season)"],
+    "versatility": 0.0~1.0 (활용도)
+  },
+  "meta": {
+    "is_layering_piece": true/false,
+    "layering_rank": 1~3 (1:inner, 2:mid, 3:outer),
+    "print_or_logo": true/false,
+    "notes": "기타 특이사항 또는 null"
+  },
+  "confidence": 전체 분석 신뢰도 0.0~1.0
+}
 
-Schema (types):
-{{
-  "category": {{"main": string, "sub": string, "confidence": number}},
-  "color": {{"primary": string, "secondary": [string], "tone": string, "confidence": number}},
-  "pattern": {{"type": string, "confidence": number}},
-  "material": {{"guess": string, "confidence": number}},
-  "fit": {{"type": string, "confidence": number}},
-  "neckline": string,
-  "sleeve": string,
-  "length": string,
-  "closure": [string],
-  "style_tags": [string],
-  "scores": {{
-    "formality": number,
-    "warmth": number,
-    "thickness": number,  // 0.1(Thin) ~ 1.0(Thick)
-    "season": [string],
-    "versatility": number
-  }},
-  "meta": {{
-    "is_layering_piece": boolean, 
-    "layering_rank": number, // 1: Inner, 2: Mid, 3: Outer
-    "print_or_logo": boolean,
-    "notes": string|null
-  }},
-  "confidence": number
-}}
-
-Critical rules:
-- JSON only. No markdown. No commentary. No code blocks.
-- 'neckline', 'sleeve', 'length', and 'closure' MUST be top-level keys.
-- 'closure' and 'scores.season' MUST be an ARRAY of strings.
-- category.main must be one of {ENUMS["category_main"]}.
-- color.tone must be one of {ENUMS["tone"]}.
-- material.guess must be one of {ENUMS["material"]}.
-- Use lowercase tokens. Use "unknown" if unsure.
+중요 규칙:
+- JSON만 출력하세요. 마크다운(```), 주석, 다른 텍스트 절대 사용 금지
+- 모든 필드를 채워주세요. 확실하지 않으면 'unknown'을 사용하고 confidence를 낮게 설정
+- 영어 소문자로 작성하세요
+- season과 closure, style_tags는 반드시 배열로 제공
+- neckline, sleeve, length, closure는 반드시 최상위 키로 포함
 """
 
 

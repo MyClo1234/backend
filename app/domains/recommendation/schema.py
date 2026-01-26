@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from uuid import UUID
 from pydantic import BaseModel
 from app.domains.wardrobe.schema import WardrobeItemSchema
 
@@ -36,6 +37,14 @@ class TodaysPickRequest(BaseModel):
 
 class TodaysPickResponse(BaseModel):
     success: bool
+    pick_id: Optional[UUID] = None
+    top_id: Optional[str] = None
+    bottom_id: Optional[str] = None
+    image_url: Optional[str] = None
+    reasoning: Optional[str] = None
+    score: Optional[float] = None
+    weather: Optional[Dict[str, Any]] = None
+    # Legacy fields required by current implementation/tests
     weather_summary: str
     temp_min: float
     temp_max: float

@@ -1,13 +1,18 @@
 import json
+import logging
 from typing import List, Dict, Any, Tuple, Optional
 from uuid import UUID
+from datetime import date
 from sqlalchemy.orm import Session
 from app.ai.workflows.recommendation_workflow import recommend_outfits
 from app.core.regions import get_nearest_region
+from app.core.config import Config
 from app.domains.weather.service import weather_service
 from app.domains.weather.utils import dfs_xy_conv
 from app.domains.wardrobe.service import wardrobe_manager
 from app.domains.recommendation.model import TodaysPick
+
+logger = logging.getLogger(__name__)
 
 
 class OutfitRecommender:
@@ -372,180 +377,100 @@ class OutfitRecommender:
             return lon, lat, True
         return lat, lon, False
 
-    def get_todays_pick(
+    async def get_todays_pick(
         self, db: Session, user_id: UUID, lat: float, lon: float
     ) -> Dict[str, Any]:
         """
-        오늘의 추천 코디 (Today's Pick)
-        1. DB에서 오늘 날짜 추천 확인
-        2. 없으면 LangGraph 워크플로우로 자동 생성
-        3. 결과 반환
+        오늘의 추천 코디 (Today's Pick) - 단순화된 버전
+        새로운 todays_pick_service를 사용하여 LLM + 이미지 생성 필수
         """
+        from fastapi import HTTPException
+        from app.llm.todays_pick_service import (
+            recommend_todays_pick_v2,
+        )
+        from app.domains.weather.service import weather_service
+        from app.core.regions import get_nearest_region
+        from app.domains.weather.utils import dfs_xy_conv
         from datetime import date
-        from app.llm.todays_pick_workflow import run_todays_pick_workflow
 
-        # 1. Check for existing Today's Pick
+        # 1. 오늘 이미 생성된 추천이 있는지 확인
         today = date.today()
         existing_pick = (
             db.query(TodaysPick)
-            .filter(
-                TodaysPick.user_id == user_id,
-                TodaysPick.date == today,
-                TodaysPick.is_active == True,
-            )
+            .filter(TodaysPick.user_id == user_id)
+            .order_by(TodaysPick.date.desc(), TodaysPick.created_at.desc())
             .first()
         )
 
-        if existing_pick:
-            # Return existing pick
+        # 1. 오늘 이미 생성된 추천이 있는지 확인
+        if existing_pick and existing_pick.date == today:
+            logger.info(
+                f"Found existing Today's Pick for user {user_id} for today ({today})"
+            )
+            ws = existing_pick.weather_snapshot or {}
+            msg = "오늘의 추천을 불러왔습니다. (캐시됨)"
+
+            # Ensure SAS URL for viewing
+            from app.domains.wardrobe.service import wardrobe_manager
+
+            final_image_url = wardrobe_manager.get_sas_url(existing_pick.image_url)
+
             return {
                 "success": True,
-                "image_url": existing_pick.image_url,
+                "pick_id": str(existing_pick.id),
+                "top_id": str(existing_pick.top_item_id),
+                "bottom_id": str(existing_pick.bottom_item_id),
+                "image_url": final_image_url,
                 "reasoning": existing_pick.reasoning,
                 "score": existing_pick.score,
-                "weather_summary": existing_pick.weather_snapshot.get("summary", ""),
-                "temp_min": existing_pick.weather_snapshot.get("temp_min"),
-                "temp_max": existing_pick.weather_snapshot.get("temp_max"),
-                "message": "오늘의 추천을 불러왔습니다.",
+                "weather": ws,
+                "weather_summary": ws.get("summary", ""),
+                "temp_min": float(ws.get("temp_min", 0.0)),
+                "temp_max": float(ws.get("temp_max", 0.0)),
+                "message": msg,
             }
 
-        # 2. No existing pick - generate new one via workflow
-        # Get weather첫
-        lat_norm, lon_norm, swapped = self._normalize_korea_lat_lon(lat, lon)
-        if swapped:
-            print("Warning: lat/lon appeared swapped; auto-corrected for Korea grid.")
+        # 2. 날씨 정보 가져오기 (중앙화된 함수 사용)
+        weather_info = await weather_service.get_weather_info(db, lat, lon)
 
-        # 우선 가장 가까운 대표 지역(캐싱/폴백용)
-        region_name, region_data = get_nearest_region(lat_norm, lon_norm)
+        if not weather_info or (
+            weather_info.get("temp_min") == 0
+            and weather_info.get("temp_max") == 0
+            and "기온" not in weather_info.get("summary", "")
+        ):
+            raise HTTPException(
+                status_code=500, detail="날씨 정보를 가져올 수 없습니다."
+            )
 
-        # 실제 격자 변환 시도 (정확 위치)
-        grid = dfs_xy_conv("toGRID", lat_norm, lon_norm)
-        nx, ny = grid.get("x"), grid.get("y")
+        # 3. 새로운 서비스로 Today's Pick 생성 (LLM + 이미지 생성 필수)
+        logger.info(f"Creating new Today's Pick for user {user_id}")
 
-        # 변환 결과가 비정상일 경우 대표 지역 격자로 폴백
-        if not isinstance(nx, (int, float)) or not isinstance(ny, (int, float)):
-            nx, ny = region_data["nx"], region_data["ny"]
-        elif nx < 0 or ny < 0 or nx > 300 or ny > 300:
-            nx, ny = region_data["nx"], region_data["ny"]
-        else:
-            nx, ny = int(nx), int(ny)
+        try:
+            result = recommend_todays_pick_v2(user_id, weather_info, db)
 
-        daily_weather, msg = weather_service.get_daily_weather_summary(
-            db, nx, ny, region_name
-        )
+            # Ensure SAS URL for viewing
+            from app.domains.wardrobe.service import wardrobe_manager
 
-        if not daily_weather:
-            raise Exception(f"Failed to fetch weather: {msg}")
+            if result.get("image_url"):
+                result["image_url"] = wardrobe_manager.get_sas_url(result["image_url"])
 
-        min_temp = daily_weather.min_temp
-        max_temp = daily_weather.max_temp
+            result["message"] = "새로운 오늘의 추천을 생성했습니다."
+            return result
 
-        # 계절 및 날씨 조건 판단
-        target_seasons = []
-        weather_summary = (
-            f"{daily_weather.region or '현위치'} 기온 {min_temp}°C ~ {max_temp}°C"
-        )
-
-        if max_temp >= 24:
-            target_seasons = ["SUMMER"]
-            weather_summary += " (여름 날씨)"
-        elif max_temp <= 12:
-            target_seasons = ["WINTER"]
-            weather_summary += " (겨울 날씨)"
-        else:
-            target_seasons = ["SPRING", "FALL"]
-            weather_summary += " (선선한 날씨)"
-
-        # 사용자 옷장 조회
-        tops_data = wardrobe_manager.get_user_wardrobe_items(
-            db, user_id, category="top", limit=100
-        )
-        bottoms_data = wardrobe_manager.get_user_wardrobe_items(
-            db, user_id, category="bottom", limit=100
-        )
-
-        raw_tops = [
-            item.model_dump() if hasattr(item, "model_dump") else item.dict()
-            for item in tops_data.get("items", [])
-        ]
-        raw_bottoms = [
-            item.model_dump() if hasattr(item, "model_dump") else item.dict()
-            for item in bottoms_data.get("items", [])
-        ]
-
-        # 날씨/계절 기반 필터링
-        filtered_tops = []
-        for t in raw_tops:
-            item_seasons = t.get("attributes", {}).get("season", [])
-            if not item_seasons:
-                filtered_tops.append(t)
-                continue
-            if any(
-                s.upper() in [ts.upper() for ts in target_seasons] for s in item_seasons
-            ):
-                filtered_tops.append(t)
-
-        filtered_bottoms = []
-        for b in raw_bottoms:
-            item_seasons = b.get("attributes", {}).get("season", [])
-            if not item_seasons:
-                filtered_bottoms.append(b)
-                continue
-            if any(
-                s.upper() in [ts.upper() for ts in target_seasons] for s in item_seasons
-            ):
-                filtered_bottoms.append(b)
-
-        if not filtered_tops:
-            filtered_tops = raw_tops
-        if not filtered_bottoms:
-            filtered_bottoms = raw_bottoms
-
-        if not filtered_tops or not filtered_bottoms:
-            return {
-                "success": False,
-                "weather_summary": weather_summary,
-                "temp_min": min_temp,
-                "temp_max": max_temp,
-                "outfit": None,
-                "message": "옷장에 상의 또는 하의가 충분하지 않습니다.",
-            }
-
-        # 3. Run workflow
-        weather_info = {
-            "summary": weather_summary,
-            "temp_min": min_temp,
-            "temp_max": max_temp,
-            "region": daily_weather.region,
-        }
-
-        result = run_todays_pick_workflow(
-            db=db,
-            user_id=str(user_id),
-            tops=filtered_tops,
-            bottoms=filtered_bottoms,
-            weather=weather_info,
-        )
-
-        if result.get("error"):
-            return {
-                "success": False,
-                "weather_summary": weather_summary,
-                "temp_min": min_temp,
-                "temp_max": max_temp,
-                "message": f"추천 생성 실패: {result['error']}",
-            }
-
-        return {
-            "success": True,
-            "image_url": result["composite_image_url"],
-            "reasoning": result["reasoning"],
-            "score": result["score"],
-            "weather_summary": weather_summary,
-            "temp_min": min_temp,
-            "temp_max": max_temp,
-            "message": "새로운 추천을 생성했습니다.",
-        }
+        except ValueError as e:
+            # 옷장 부족 등 사용자 문제
+            logger.warning(f"Cannot create Today's Pick: {str(e)}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except RuntimeError as e:
+            # 이미지 생성 실패 등 시스템 문제
+            logger.error(f"System error creating Today's Pick: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"이미지 생성 실패: {str(e)}")
+        except Exception as e:
+            # 기타 에러
+            logger.error(
+                f"Unexpected error creating Today's Pick: {str(e)}", exc_info=True
+            )
+            raise HTTPException(status_code=500, detail=f"추천 생성 실패: {str(e)}")
 
     def save_todays_pick(
         self,
