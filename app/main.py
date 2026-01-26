@@ -41,6 +41,9 @@ logging.getLogger("app").setLevel(logging.DEBUG)
 try:
     from app.database import engine, Base
     from app.domains.user import model as user_model
+    from app.models import outfit as outfit_model
+    from app.models import chat as chat_model
+    from app.domains.wardrobe import model as wardrobe_model
     from app.domains.auth.router import router as auth_router
 
     HAS_DB = True
