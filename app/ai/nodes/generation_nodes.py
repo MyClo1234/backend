@@ -1,137 +1,91 @@
-"""
-패션 이미지 생성 LangGraph 노드
-"""
-
+from typing import Dict, Any, List
 import logging
-import io
-import requests
-from typing import Dict, Any
-from app.ai.schemas.workflow_state import RecommendationState
-from app.ai.clients.azure_openai_client import azure_openai_client
-from app.domains.wardrobe.service import wardrobe_manager
-from app.core.config import Config
+from app.ai.schemas.workflow_state import ChatState
+from app.ai.clients.nano_banana_client import NanoBananaClient
+from app.utils.blob_storage import get_blob_storage_service
+from app.domains.recommendation.model import TodaysPick
+from app.database import get_db
 
 logger = logging.getLogger(__name__)
 
 
-def nano_banana_node(state: RecommendationState) -> RecommendationState:
-    """나노바나나가 코디의 이미지를 생성하고 스토리지에 저장하는 노드"""
-    final_outfits = state.get("final_outfits", [])
-    if not final_outfits:
-        return state
-
-    # 첫 번째 추천 코디에 대해 이미지 생성 (Today's Pick용)
-    best_pick = final_outfits[0]
-    top = best_pick.get("top", {})
-    bottom = best_pick.get("bottom", {})
-    style_desc = best_pick.get("style_description", "Modern fashion outfit")
-
-    # 1. 시각화 프롬프트 구성 (나노바나나의 눈 - Vision 활용)
+def generate_todays_pick(state: ChatState) -> ChatState:
+    """
+    Todays Pick 이미지 생성 및 DB 저장 노드
+    """
     try:
-        images_to_analyze = []
+        recommendations = state.get("recommendations")
+        context = state.get("context", {})
+        user_id = context.get("user_id")
 
-        # 상의와 하의 이미지 다운로드
-        for item in [top, bottom]:
-            url = item.get("image_url")
-            if url:
-                # SAS 토큰 처리 등 보안 URL 확인 (wardrobe_manager 활용 가능)
-                final_url = wardrobe_manager.get_sas_url(url)
-                resp = requests.get(final_url)
-                if resp.status_code == 200:
-                    images_to_analyze.append(resp.content)
+        if not recommendations or not user_id:
+            logger.warning("No recommendations or user_id found for generation.")
+            return state
 
-        if images_to_analyze:
-            logger.info(
-                f"나노바나나가 실제 옷 사진 {len(images_to_analyze)}장을 분석 중입니다..."
+        # 첫 번째 추천 조합 선택 (가장 높은 점수)
+        best_outfit = recommendations[0]
+        top_item = best_outfit.get("top")
+        bottom_item = best_outfit.get("bottom")
+
+        # 아이템 설명 구성 (프롬프트용)
+        # TODO: 실제 옷 이미지 URL이나 특징을 더 자세히 반영해야 함
+        top_desc = top_item.get("category", "top") if top_item else "shirt"
+        bottom_desc = bottom_item.get("category", "bottom") if bottom_item else "pants"
+
+        # 사용자 성별/체형 (Context에서 가져오거나 DB 조회 필요)
+        # 여기서는 Context에 있다고 가정하거나 기본값 사용
+        gender = context.get("gender", "korean man")  # Default
+
+        # 프롬프트 생성
+        prompt = f"A photo of a {gender} model wearing {top_desc} and {bottom_desc}. High quality, realistic, full body shot."
+
+        # Nano Banana (Imagen) 호출
+        client = NanoBananaClient()
+        image_bytes = client.generate_image(prompt=prompt)
+
+        if not image_bytes:
+            logger.error("Failed to generate image.")
+            return state
+
+        # Blob Storage 업로드
+        blob_service = get_blob_storage_service()
+        upload_result = blob_service.upload_image(
+            image_bytes=image_bytes,
+            user_id=str(user_id),
+            original_filename="todays_pick_gen.png",
+            content_type="image/png",
+        )
+
+        image_url = upload_result["blob_url"]
+
+        # DB 저장 (TodaysPick)
+        db = next(get_db())
+        try:
+            todays_pick = TodaysPick(
+                user_id=user_id,
+                top_item_id=str(top_item.get("id")) if top_item else None,
+                bottom_item_id=str(bottom_item.get("id")) if bottom_item else None,
+                image_url=image_url,
+                prompt=prompt,
             )
-            vision_prompt = (
-                "You are a fashion expert observer. Look at the provided images of a top and a bottom. "
-                "Describe them in extreme detail for an image generator. Focus on: "
-                "1. Exact colors and shades. 2. Fabric and texture. 3. Small details like buttons, patterns, or logos. "
-                "4. The overall fit and style. "
-                "Return a concise, high-quality descriptive paragraph for DALL-E to recreate this exact coordination."
-            )
+            db.add(todays_pick)
+            db.commit()
+            db.refresh(todays_pick)
 
-            # 나노바나나의 눈(Vision)으로 분석
-            visual_description = azure_openai_client.generate_content(
-                prompt=vision_prompt, images=images_to_analyze, temperature=0.3
-            )
-            logger.info(f"시각적 분석 완료: {visual_description[:100]}...")
+            # State 업데이트
+            state["todays_pick"] = {
+                "id": str(todays_pick.id),
+                "image_url": image_url,
+                "items": best_outfit,
+            }
 
-            prompt = (
-                f"A professional fashion studio photography of a full outfit coordination. "
-                f"The outfit consists of the following specific items: {visual_description}. "
-                f"Style Concept: {style_desc}. "
-                f"The items are arranged neatly on a clean, minimal white background. "
-                f"High quality, 8k resolution, commercial fashion photography style."
-            )
-        else:
-            # 사진을 못 불러온 경우 텍스트 속성으로 폴백
-            top_attrs = top.get("attributes", {})
-            bottom_attrs = bottom.get("attributes", {})
-            prompt = (
-                f"A professional fashion studio photography of a full outfit coordination. "
-                f"Top: {top_attrs.get('color', {}).get('primary', '')} {top_attrs.get('category', {}).get('sub', 'top')}. "
-                f"Bottom: {bottom_attrs.get('color', {}).get('primary', '')} {bottom_attrs.get('category', {}).get('sub', 'bottom')}. "
-                f"Style: {style_desc}. "
-                f"The items are arranged neatly on a clean, minimal white background. "
-                f"High quality, 8k resolution, commercial fashion photography style."
-            )
-    except Exception as e:
-        logger.warning(f"Vision analysis failed: {e}. Falling back to text prompt.")
-        # 폴백 프롬프트 (기존 코드와 유사)
-        prompt = f"Fashion coordination: {style_desc} style with {top.get('id')} and {bottom.get('id')}."
+            # 클라이언트 트리거용 플래그
+            state["context"]["is_pick_updated"] = True
 
-    try:
-        # 2. 나노바나나 이미지 생성
-        image_url = azure_openai_client.generate_image(prompt=prompt)
-
-        # 3. 이미지 다운로드 및 Blob Storage 저장
-        response = requests.get(image_url)
-        if response.status_code == 200:
-            image_bytes = response.content
-
-            # 사용자별 고유 경로 설정 (images/users/todaypicke/)
-            import uuid
-            from datetime import datetime
-
-            user_id = state.get("metadata", {}).get("user_id", "unknown")
-            pick_uuid = str(uuid.uuid4())
-            date_str = datetime.now().strftime("%Y%m%d")
-
-            # 파일 경로: images/users/todaypicke/{user_id}/{date_str}_{pick_uuid}.png
-            blob_path = f"images/users/todaypicke/{user_id}/{date_str}_{pick_uuid}.png"
-
-            # WardrobeManager의 인스턴스를 사용하여 업로드 (컨테이너: codify0blob0storage)
-            # NOTE: wardrobe_manager.save_item은 DB 저장까지 같이 하므로,
-            # 여기서는 순수하게 Blob 업로드 기능만 필요함.
-            # 임시로 wardrobe_manager의 client를 직접 사용하거나 내부 메서드 활용.
-
-            if wardrobe_manager.container_client:
-                blob_client = wardrobe_manager.container_client.get_blob_client(
-                    blob_path
-                )
-                from azure.storage.blob import ContentSettings
-
-                blob_client.upload_blob(
-                    image_bytes,
-                    overwrite=True,
-                    content_settings=ContentSettings(content_type="image/png"),
-                )
-
-                final_stored_url = blob_client.url
-                logger.info(f"Today's Pick image saved: {final_stored_url}")
-
-                # 상태 업데이트
-                best_pick["generated_image_url"] = final_stored_url
-                state["metadata"]["generated_image_path"] = blob_path
-            else:
-                logger.error("Blob Storage container client not initialized")
-        else:
-            logger.error(f"Failed to download generated image: {response.status_code}")
+        finally:
+            db.close()
 
     except Exception as e:
-        logger.error(f"Error in nano_banana_node: {str(e)}", exc_info=True)
-        state["metadata"]["generation_error"] = str(e)
+        logger.error(f"Error in generate_todays_pick node: {e}")
 
     return state

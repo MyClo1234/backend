@@ -120,6 +120,11 @@ def create_chat_workflow() -> StateGraph:
     workflow.add_node("generate_general", generate_chat_response_node)
     workflow.add_node("recommend_outfit", handle_recommendation_node)
 
+    # Import here to avoid circular dependency if any
+    from app.ai.nodes.generation_nodes import generate_todays_pick
+
+    workflow.add_node("generate_todays_pick", generate_todays_pick)
+
     workflow.set_entry_point("analyze_intent")
 
     workflow.add_conditional_edges(
@@ -129,7 +134,10 @@ def create_chat_workflow() -> StateGraph:
     )
 
     workflow.add_edge("generate_general", END)
-    workflow.add_edge("recommend_outfit", END)
+
+    # Recommendation flow: Recommend -> Generate Image -> End
+    workflow.add_edge("recommend_outfit", "generate_todays_pick")
+    workflow.add_edge("generate_todays_pick", END)
 
     return workflow.compile()
 

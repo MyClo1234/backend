@@ -27,3 +27,7 @@ class DailyWeather(Base):
     __table_args__ = (
         UniqueConstraint("base_date", "nx", "ny", name="uix_daily_weather"),
     )
+
+    @property
+    def date_id(self):
+        return self.base_date

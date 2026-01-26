@@ -7,8 +7,7 @@ from app.core.regions import get_nearest_region
 from app.domains.weather.service import weather_service
 from app.domains.weather.utils import dfs_xy_conv
 from app.domains.wardrobe.service import wardrobe_manager
-from app.models.outfit import TodaysPick
-from app.ai.nodes.generation_nodes import nano_banana_node
+from app.domains.recommendation.model import TodaysPick
 
 
 class OutfitRecommender:
@@ -158,8 +157,14 @@ class OutfitRecommender:
         )
         color_score = self.calculate_color_harmony(top_color, bottom_color)
 
-        top_styles = [s for s in self._as_list(top_attrs.get("style_tags")) if isinstance(s, str)]
-        bottom_styles = [s for s in self._as_list(bottom_attrs.get("style_tags")) if isinstance(s, str)]
+        top_styles = [
+            s for s in self._as_list(top_attrs.get("style_tags")) if isinstance(s, str)
+        ]
+        bottom_styles = [
+            s
+            for s in self._as_list(bottom_attrs.get("style_tags"))
+            if isinstance(s, str)
+        ]
         style_score = self.calculate_style_match(top_styles, bottom_styles)
 
         top_scores = self._as_dict(top_attrs.get("scores"))
@@ -168,11 +173,15 @@ class OutfitRecommender:
         top_formality_raw = top_scores.get("formality", 0.5)
         bottom_formality_raw = bottom_scores.get("formality", 0.5)
         try:
-            top_formality = float(top_formality_raw) if top_formality_raw is not None else 0.5
+            top_formality = (
+                float(top_formality_raw) if top_formality_raw is not None else 0.5
+            )
         except (TypeError, ValueError):
             top_formality = 0.5
         try:
-            bottom_formality = float(bottom_formality_raw) if bottom_formality_raw is not None else 0.5
+            bottom_formality = (
+                float(bottom_formality_raw) if bottom_formality_raw is not None else 0.5
+            )
         except (TypeError, ValueError):
             bottom_formality = 0.5
         formality_score = self.calculate_formality_match(
@@ -308,7 +317,9 @@ class OutfitRecommender:
         for top in tops:
             for bottom in bottoms:
                 score, reasons = self.calculate_outfit_score(top, bottom)
-                top_cat = self._as_dict(self._as_dict(top.get("attributes")).get("category"))
+                top_cat = self._as_dict(
+                    self._as_dict(top.get("attributes")).get("category")
+                )
                 bottom_cat = self._as_dict(
                     self._as_dict(bottom.get("attributes")).get("category")
                 )
@@ -490,6 +501,15 @@ class OutfitRecommender:
             }
 
         best_pick = recommendations[0]
+
+        return {
+            "success": True,
+            "weather_summary": weather_summary,
+            "temp_min": min_temp,
+            "temp_max": max_temp,
+            "outfit": best_pick,
+            "message": "추천이 완료되었습니다.",
+        }
 
     def save_todays_pick(
         self,

@@ -13,7 +13,7 @@ from app.ai.nodes.recommendation_nodes import (
     fallback_recommendation_node,
     should_use_llm,
 )
-from app.ai.nodes.generation_nodes import nano_banana_node
+from app.ai.nodes.generation_nodes import generate_todays_pick
 
 
 def create_recommendation_workflow() -> StateGraph:
@@ -26,7 +26,7 @@ def create_recommendation_workflow() -> StateGraph:
     workflow.add_node("call_llm", call_llm_node)
     workflow.add_node("process_llm_results", process_llm_results_node)
     workflow.add_node("fallback", fallback_recommendation_node)
-    workflow.add_node("generate_image", nano_banana_node)
+    workflow.add_node("generate_image", generate_todays_pick)
 
     # 엣지 정의
     workflow.set_entry_point("generate_candidates")
