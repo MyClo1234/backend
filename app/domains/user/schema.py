@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, field_validator, Field, ConfigDict
 from uuid import UUID
 
 
@@ -38,5 +38,4 @@ class UserResponse(BaseModel):
     gender: str | None = None
     body_shape: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -22,7 +22,7 @@ venv.bak/
 
 # IDE
 .idea/
-.vscode/
+
 *.swp
 *.swo
 *~
@@ -47,5 +47,9 @@ azure_config.json
 *.temp
 .cache/
 
+.python_packages
+
+# Workspace files
+*.code-workspace
 # Closet for test (dummy data for test)
 closet/
