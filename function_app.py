@@ -1,8 +1,6 @@
 import logging
 import azure.functions as func
 from app.main import app as fastapi_app
-from app.database import get_db
-from app.batch import run_daily_weather_batch
 
 # 1. FastAPI 앱 연결
 app = func.AsgiFunctionApp(app=fastapi_app, http_auth_level=func.AuthLevel.ANONYMOUS)

@@ -6,16 +6,18 @@ trigger:
 pool:
   name: 'codify-self-host-ci-cd'
 
-
 steps:
-  # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
+  # 1) Dependencies install (PEP 668 회피) + artifact용 .python_packages 만들기
   - script: |
       set -euo pipefail
-      
+
+      echo "Python version:"
+      python3 --version
+
       # 1. Install uv
       curl -LsSf https://astral.sh/uv/install.sh | sh
-      source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
-      
+      source "$HOME/.cargo/env" || export PATH="$HOME/.local/bin:$PATH"
+
       # 2. Setup venv & clean target
       uv venv .venv
       rm -rf .python_packages
@@ -36,22 +38,7 @@ steps:
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
     displayName: "Install dependencies with uv"
 
-  # 2) Run Tests
-  # - script: |
-  #     set -euo pipefail
-  #     source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
-  #     source .venv/bin/activate
-      
-  #     export CI=true
-  #     # Self-hosted agent setup: use local Postgres directly
-  #     # Connect to 127.0.0.1 to avoid IPv6 issues
-  #     # Use the 'choeseonghyeon' user that owns the visible Postgres process
-  #     export DATABASE_URL="postgresql://choeseonghyeon@127.0.0.1:5432/codify_test"
-      
-  #     pytest -v
-  #   displayName: "Run Tests with pytest"
-
-  # 3) zip 전에 필수 파일 존재 체크
+  # 2) zip 전에 필수 파일 존재 체크
   - script: |
       set -euo pipefail
       test -f host.json
@@ -72,19 +59,38 @@ steps:
       replaceExistingArchive: true
 
   # 4) zip 안에 실제 포함됐는지 확인
-  # ⚠️ head 때문에 141 나는 문제 방지: sed -n 사용
   - script: |
       set -euo pipefail
       unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" \
         | grep -E "host.json|function_app.py|requirements.txt|\.python_packages" \
-        | sed -n '1,80p'
+        | sed -n '1,120p'
     displayName: "Verify zip contents"
 
-  # 5) OneDeploy로 배포
+  # 4-1) host.json / function_app.py 가 zip "루트"에 있는지 확인
   - script: |
       set -euo pipefail
 
-      DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/publish?type=zip"
+      echo "== Check host.json path (must be root) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "host.json$" || true
+
+      echo "== Check function_app.py path (must be root) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "function_app.py$" || true
+
+      echo "== Root-level entries (no folders) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" \
+        | awk '{print $4}' \
+        | grep -v '^$' \
+        | grep -v '/.*' \
+        | sort \
+        | sed -n '1,200p'
+    displayName: "Verify zip root paths (host.json/function_app.py)"
+
+  # 5) OneDeploy로 배포 + deploymentId 받기 + 완료될 때까지 polling
+  - script: |
+      set -euo pipefail
+
+      DEPLOY_BASE="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net"
+      DEPLOY_URL="${DEPLOY_BASE}/api/publish?type=zip"
       echo "Deploy to: $DEPLOY_URL"
 
       curl_retry() {
@@ -107,25 +113,52 @@ steps:
         return 0
       }
 
-      # -f: fail on HTTP error
-      # -v: verbose
-      # --retry 5: curl internal retry
-      # --retry-delay 5: delay between internal retries
-      # --retry-connrefused: retry on connection refused
-      # --connect-timeout 60: timeout for connection
-      # --max-time 300: max time for whole operation
-      
-      curl_retry 5 -f -v -u "${USER}:${PASS}" \
-        --retry 5 \
-        --retry-delay 5 \
-        --retry-connrefused \
-        --connect-timeout 60 \
-        --max-time 300 \
-        -H "Content-Type: application/zip" \
-        --data-binary @"$(Build.ArtifactStagingDirectory)/build.zip" \
-        "$DEPLOY_URL"
-    displayName: "Deploy to Azure Functions (OneDeploy)"
+      # (1) zip 업로드: 202 Accepted + deploymentId(body)가 내려옴
+      DEPLOYMENT_ID=$(
+        curl_retry 5 -f -sS -u "${USER}:${PASS}" \
+          --retry 5 \
+          --retry-delay 5 \
+          --retry-connrefused \
+          --connect-timeout 60 \
+          --max-time 300 \
+          -H "Content-Type: application/zip" \
+          --data-binary @"$(Build.ArtifactStagingDirectory)/build.zip" \
+          "$DEPLOY_URL" \
+        | tr -d '"'
+      )
+
+      echo "Deployment ID: $DEPLOYMENT_ID"
+      STATUS_URL="${DEPLOY_BASE}/api/deployments/${DEPLOYMENT_ID}"
+      LOG_URL="${DEPLOY_BASE}/api/deployments/${DEPLOYMENT_ID}/log"
+
+      # (2) 배포 완료될 때까지 polling (최대 10분)
+      echo "Polling deployment status..."
+      for i in $(seq 1 60); do
+        JSON=$(curl -sS -u "${USER}:${PASS}" "$STATUS_URL" || true)
+        COMPLETE=$(echo "$JSON" | jq -r '.complete // empty')
+        STATUS=$(echo "$JSON" | jq -r '.status // empty')
+        STATUS_TEXT=$(echo "$JSON" | jq -r '.status_text // empty')
+
+        echo "[$i/60] complete=$COMPLETE status=$STATUS status_text=$STATUS_TEXT"
+
+        if [ "$COMPLETE" = "true" ]; then
+          if [ "$STATUS" = "4" ] || [ "$STATUS" = "0" ]; then
+            echo "✅ Deployment completed successfully."
+            exit 0
+          else
+            echo "❌ Deployment completed but failed. Fetching last logs..."
+            curl -sS -u "${USER}:${PASS}" "$LOG_URL" | jq '. | .[-30:]'
+            exit 1
+          fi
+        fi
+
+        sleep 10
+      done
+
+      echo "❌ Deployment did not complete within timeout. Fetching last logs..."
+      curl -sS -u "${USER}:${PASS}" "$LOG_URL" | jq '. | .[-30:]'
+      exit 1
+    displayName: "Deploy to Azure Functions (OneDeploy) + Poll status"
     env:
       USER: '$(DEPLOY_USER)'
       PASS: '$(DEPLOY_PWD)'
-
