@@ -51,8 +51,7 @@ class WeatherService:
 
                 # 성공: 데이터 파싱
                 items = result["response"]["body"]["items"]["item"]
-                # _parse_weather_data returns 4 values now (min, max, max_pty, current_pty)
-                min_val, max_val, max_rain_type, _ = self._parse_weather_data(items)
+                min_val, max_val, max_rain_type = self._parse_weather_data(items)
 
                 all_weathers[region] = DailyWeather(
                     base_date=today_str,
@@ -131,73 +130,87 @@ class WeatherService:
         self, db: Session, nx: int, ny: int, region: Optional[str] = None
     ) -> Tuple[Optional[DailyWeather], str]:
         """
-        오늘 데이터가 DB에 없으면 KMA에서 가져와 저장하고 반환합니다.
+        오늘 날짜의 기상 정보를 조회합니다.
+        1. Region(시/도)이 있으면 해당 지역의 캐시된 날씨가 있는지 먼저 확인합니다.
+        2. 없으면 NX, NY로 DB 조회합니다.
+        3. DB에 없으면 API(02:00 기준)를 호출하여 저장합니다.
         """
-        # 1. DB 조회
         today_str = datetime.now().strftime("%Y%m%d")
-        cached = (
-            db.query(DailyWeather).filter_by(base_date=today_str, nx=nx, ny=ny).first()
+
+        # 1. DB 조회 (Region 우선)
+        if region:
+            cached_by_region = (
+                db.query(DailyWeather)
+                .filter_by(date_id=today_str, region=region)
+                .first()
+            )
+            if cached_by_region:
+                return cached_by_region, "DB Cached (Region)"
+
+        # 2. DB 조회 (NX, NY) - region으로 못 찾았거나 region이 없는 경우
+        cached_data = (
+            db.query(DailyWeather).filter_by(date_id=today_str, nx=nx, ny=ny).first()
         )
+        if cached_data:
+            return cached_data, "DB Cached (Grid)"
 
-        if cached:
-            return cached, "DB Cached"
-
-        # 2. KMA 요청
-        # 02:00 데이터가 가장 안정적 (Min/Max 포함)
+        # 3. API 호출
         data = await self.client.fetch_forecast(today_str, "0200", nx, ny, 300)
 
-        if not data or data["response"]["header"]["resultCode"] != "00":
-            # 02:00 실패 시 전날 23:00 등 시도할 수도 있지만,
-            # 여기서는 간단히 실패 처리 or "아직 생성 안됨"
-            return None, "API Error or No Data"
+        if not data:
+            return None, "Connection Error"
+
+        if data["response"]["header"]["resultCode"] != "00":
+            return (
+                None,
+                f"API Error or Not Ready: {data['response']['header']['resultMsg']}",
+            )
 
         items = data["response"]["body"]["items"]["item"]
-        min_val, max_val, rain_type, current_rain_type = self._parse_weather_data(items)
 
-        # 3. 저장 (DB 오류가 나도 데이터는 반환하도록 예외 처리)
-        weather_obj = DailyWeather(
-            base_date=today_str,
-            base_time="0200",
+        # 4. 데이터 파싱
+        min_val, max_val, max_rain_type = self._parse_weather_data(items)
+
+        new_weather = DailyWeather(
+            date_id=today_str,
             nx=nx,
             ny=ny,
             region=region,
             min_temp=min_val,
             max_temp=max_val,
-            rain_type=rain_type,
+            rain_type=max_rain_type,
         )
 
-        msg = "Fetched from KMA"
+        # 5. DB 저장
+        db.add(new_weather)
         try:
-            db.add(weather_obj)
             db.commit()
-            db.refresh(weather_obj)
-            msg += " (Saved to DB)"
-        except Exception as e:
-            # DB 연결/저장 실패 시 롤백 및 로그 출력
+            db.refresh(new_weather)
+        except Exception:
             db.rollback()
-            print(f"Failed to save weather data to DB: {e}")
-            msg += f" (DB Save Failed: {str(e)})"
+            # 동시성 이슈 등으로 저장 실패 시, 이미 저장된 데이터가 있는지 확인
+            existing = (
+                db.query(DailyWeather)
+                .filter_by(date_id=today_str, nx=nx, ny=ny)
+                .first()
+            )
+            if existing:
+                return existing, "DB Cached (Concurrent Save)"
+            else:
+                return None, "Save Failed"
 
-        # JIT inject current_rain_type (DB에는 없지만 API 응답에는 포함)
-        weather_obj.current_rain_type = current_rain_type
-
-        return weather_obj, msg
+        return new_weather, "API Fetched & Saved"
 
     def _parse_weather_data(
         self, items: list
-    ) -> Tuple[Optional[float], Optional[float], int, Optional[int]]:
+    ) -> Tuple[Optional[float], Optional[float], int]:
         min_val = None
         max_val = None
         max_rain_type = 0
-        current_rain_type = 0
-
-        # 현재 시간 (HH00) 구하기
-        now_hour_str = datetime.now().strftime("%H00")
 
         for item in items:
             cat = item["category"]
             val = item["fcstValue"]
-            fcst_time = item["fcstTime"]
 
             if cat == "TMN":
                 min_val = float(val)
@@ -208,11 +221,7 @@ class WeatherService:
                 if rain_val > max_rain_type:
                     max_rain_type = rain_val
 
-                # 현재 시각의 강수 형태
-                if fcst_time == now_hour_str:
-                    current_rain_type = rain_val
-
-        return min_val, max_val, max_rain_type, current_rain_type
+        return min_val, max_val, max_rain_type
 
 
 # Singleton Instance

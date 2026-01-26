@@ -47,7 +47,6 @@ class ScoresModel(BaseModel):
 
 class MetaModel(BaseModel):
     is_layering_piece: Optional[bool] = None
-    layering_rank: Optional[int] = None
     notes: Optional[str] = None
 
 
