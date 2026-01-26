@@ -41,9 +41,10 @@ logging.getLogger("app").setLevel(logging.DEBUG)
 try:
     from app.database import engine, Base
     from app.domains.user import model as user_model
-    from app.models import outfit as outfit_model
-    from app.models import chat as chat_model
-    from app.domains.wardrobe import model as wardrobe_model
+
+    # Ensure all SQLAlchemy models are imported/registered before first DB usage.
+    # Without this, relationships like relationship("OutfitLog") may fail to resolve.
+    import app.models as _models  # noqa: F401
     from app.domains.auth.router import router as auth_router
 
     HAS_DB = True
@@ -70,7 +71,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Mount static files for images
     # Mount static files for images
     # Ensure directory exists
     static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -125,7 +125,13 @@ def create_app() -> FastAPI:
             }
 
             # 각 경로에 보안 요구사항 추가 (인증이 필요한 엔드포인트에만)
-            auth_required_paths = ["/api/extract", "/api/users", "/api/wardrobe"]
+            # NOTE: Swagger UI는 OpenAPI에 security가 걸린 operation에만 Authorization 헤더를 붙입니다.
+            auth_required_paths = [
+                "/api/extract",
+                "/api/users",
+                "/api/wardrobe",
+                "/api/recommend",
+            ]
             auth_excluded_paths = ["/api/auth/login", "/api/auth/signup", "/api/health"]
 
             for path, path_item in openapi_schema.get("paths", {}).items():
