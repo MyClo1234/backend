@@ -7,7 +7,8 @@ class DailyWeather(Base):
     __tablename__ = "daily_weather"
 
     id = Column(Integer, primary_key=True, index=True)
-    date_id = Column(String(8), nullable=False)  # 예: "20260123" (조회 기준 날짜)
+    base_date = Column(String(8), nullable=False)  # 예: "20260123" (조회 기준 날짜)
+    base_time = Column(String(4), nullable=False)  # 예: "HHMM"
     nx = Column(Integer, nullable=False)
     ny = Column(Integer, nullable=False)
     region = Column(String(50), nullable=True, index=True)  # 시/도 이름 (예: "Seoul")
@@ -24,5 +25,5 @@ class DailyWeather(Base):
     # 기본적으로 nx,ny가 primary location key이므로 유지.
     # region 검색 속도를 위해 위에서 index=True 추가함.
     __table_args__ = (
-        UniqueConstraint("date_id", "nx", "ny", name="uix_daily_weather"),
+        UniqueConstraint("base_date", "nx", "ny", name="uix_daily_weather"),
     )
