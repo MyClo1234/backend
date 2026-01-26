@@ -6,39 +6,75 @@ trigger:
 pool:
   name: 'codify-self-host-ci-cd'
 
+variables:
+  PYTHON_VERSION: "3.12"
+  STAGE_DIR: "$(Build.ArtifactStagingDirectory)/deploy"
+  ZIP_PATH: "$(Build.ArtifactStagingDirectory)/build.zip"
+
 steps:
-  # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
+  # 0) 환경 확인
   - script: |
       set -euo pipefail
-      
-      # 1. Install uv
+      echo "== Agent info =="
+      uname -a || true
+      whoami || true
+      pwd || true
+
+      echo "== Python version (system) =="
+      python3 --version
+      which python3
+
+      echo "== Workspace =="
+      echo "System.DefaultWorkingDirectory: $(System.DefaultWorkingDirectory)"
+      ls -la
+    displayName: "Check agent & python"
+
+  # 1) 의존성 설치: uv + venv + .python_packages
+  - script: |
+      set -euo pipefail
+
+      cd "$(System.DefaultWorkingDirectory)"
+
+      # 1) Install uv
       curl -LsSf https://astral.sh/uv/install.sh | sh
-      source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
-      
-      # 2. Setup venv & clean target
-      uv venv .venv
+      source "$HOME/.cargo/env" 2>/dev/null || export PATH="$HOME/.local/bin:$PATH"
+
+      echo "== uv version =="
+      uv --version
+
+      # 2) Setup venv (Python 3.12) & clean target
+      # NOTE: python3.12가 시스템에 설치되어 있으므로 --python 3.12로 고정
+      uv venv .venv --python "${PYTHON_VERSION}"
+      source .venv/bin/activate
+
+      echo "== venv python =="
+      python --version
+      which python
+
       rm -rf .python_packages
       mkdir -p .python_packages/lib/site-packages
 
-      # 3. Install dependencies with uv (for artifact)
+      # 3) Install dependencies for deployment artifact (into .python_packages)
       uv pip install -r requirements.txt --target ".python_packages/lib/site-packages"
 
-      # 4. Install dependencies for Testing (into venv)
-      source .venv/bin/activate
+      # 4) Install dependencies for testing (into venv)
       uv pip install -r requirements.txt
-      uv pip install -r requirements-dev.txt
+      if [ -f requirements-dev.txt ]; then
+        uv pip install -r requirements-dev.txt
+      fi
 
-      echo "Installed packages count:"
+      echo "Installed packages count (.python_packages):"
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | wc -l
 
-      echo "Sample entries:"
-      find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
+      echo "Sample entries (.python_packages):"
+      find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,30p'
     displayName: "Install dependencies with uv"
 
-  # 2) Run Tests
+  # 2) Run Tests (필요하면 주석 해제)
   # - script: |
   #     set -euo pipefail
-  #     source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
+  #     cd "$(System.DefaultWorkingDirectory)"
+  #     source "$HOME/.cargo/env" 2>/dev/null || export PATH="$HOME/.local/bin:$PATH"
   #     source .venv/bin/activate
   #
   #     export CI=true
@@ -47,55 +83,91 @@ steps:
   #     pytest -v
   #   displayName: "Run Tests with pytest"
 
-  # 3) zip 전에 필수 파일 존재 체크
+  # 3) 배포 필수 파일 존재 체크 (workspace 기준)
   - script: |
       set -euo pipefail
+      cd "$(System.DefaultWorkingDirectory)"
+
       test -f host.json
       test -f function_app.py
       test -f requirements.txt
       test -d .python_packages/lib/site-packages
-      echo "OK: host.json/function_app.py/requirements.txt/.python_packages exist"
-    displayName: "Verify workspace before zip"
+      test -d app
 
-  # 3) zip 만들기 (repo 루트 기준)
-  - task: ArchiveFiles@2
-    displayName: "Archive function app"
-    inputs:
-      rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
-      includeRootFolder: false
-      archiveType: 'zip'
-      archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
-      replaceExistingArchive: true
+      echo "OK: host.json/function_app.py/requirements.txt/.python_packages/app exist"
+    displayName: "Verify workspace before staging"
 
-  # 4) zip 안에 실제 포함됐는지 확인
-  # ⚠️ head 때문에 141 나는 문제 방지: sed -n 사용
+  # 4) 스테이징 폴더 구성 (zip에 .venv/ 포함 방지)
   - script: |
       set -euo pipefail
-      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" \
-        | grep -E "host.json|function_app.py|requirements.txt|\.python_packages" \
-        | sed -n '1,80p'
-    displayName: "Verify zip contents"
+      cd "$(System.DefaultWorkingDirectory)"
 
-  # 4-1) host.json / function_app.py 가 zip "루트"에 있는지 확인 (경로 포함 여부 체크)
+      echo "== Prepare stage dir: $(STAGE_DIR) =="
+      rm -rf "$(STAGE_DIR)"
+      mkdir -p "$(STAGE_DIR)"
+
+      # 필수 루트 파일
+      cp host.json function_app.py requirements.txt "$(STAGE_DIR)/"
+
+      # 앱 소스
+      cp -R app "$(STAGE_DIR)/app"
+
+      # 배포용 python 패키지
+      cp -R .python_packages "$(STAGE_DIR)/.python_packages"
+
+      # (선택) alembic이 런타임에서 필요하면 포함
+      if [ -d alembic ]; then
+        cp -R alembic "$(STAGE_DIR)/alembic"
+      fi
+      if [ -f alembic.ini ]; then
+        cp alembic.ini "$(STAGE_DIR)/alembic.ini"
+      fi
+
+      # (선택) 추가로 필요한 파일 있으면 여기에서 복사
+      # 예: cp -R some_folder "$(STAGE_DIR)/some_folder"
+
+      echo "== Stage tree (top-level) =="
+      find "$(STAGE_DIR)" -maxdepth 2 -mindepth 1 -print | sed -n '1,200p'
+    displayName: "Stage deployment files"
+
+  # 5) 스테이징 폴더 zip 생성
   - script: |
       set -euo pipefail
+
+      echo "== Create zip: $(ZIP_PATH) =="
+      rm -f "$(ZIP_PATH)"
+
+      # stage dir 내부를 zip 루트로 만들기 위해 (중요)
+      cd "$(STAGE_DIR)"
+      zip -r "$(ZIP_PATH)" . -q
+
+      echo "== Zip size =="
+      ls -lh "$(ZIP_PATH)"
+    displayName: "Archive function app (stage -> zip)"
+
+  # 6) zip 내용 검증: 루트에 host.json / function_app.py가 있는지 확인
+  - script: |
+      set -euo pipefail
+
+      echo "== Verify required files in zip =="
+      unzip -l "$(ZIP_PATH)" | grep -E "host.json$|function_app.py$|requirements.txt$|\.python_packages/" | sed -n '1,120p'
 
       echo "== Check host.json path (must be root) =="
-      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "host.json$" || true
+      unzip -l "$(ZIP_PATH)" | grep -E " host.json$" || true
 
       echo "== Check function_app.py path (must be root) =="
-      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "function_app.py$" || true
+      unzip -l "$(ZIP_PATH)" | grep -E " function_app.py$" || true
 
-      echo "== Root-level entries (no folders) =="
-      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" \
-        | awk '{print $4}' \
-        | grep -v '^$' \
-        | grep -v '/.*' \
-        | sort \
-        | sed -n '1,120p'
-    displayName: "Verify zip root paths (host.json/function_app.py)"
+      echo "== Ensure .venv is NOT included =="
+      if unzip -l "$(ZIP_PATH)" | grep -qE "^.*\.venv/"; then
+        echo "ERROR: .venv is included in zip. Fix staging rules."
+        exit 1
+      else
+        echo "OK: .venv not included"
+      fi
+    displayName: "Verify zip contents & root paths"
 
-  # 5) OneDeploy로 배포
+  # 7) OneDeploy로 배포
   - script: |
       set -euo pipefail
 
@@ -129,7 +201,7 @@ steps:
         --connect-timeout 60 \
         --max-time 300 \
         -H "Content-Type: application/zip" \
-        --data-binary @"$(Build.ArtifactStagingDirectory)/build.zip" \
+        --data-binary @"$(ZIP_PATH)" \
         "$DEPLOY_URL"
     displayName: "Deploy to Azure Functions (OneDeploy)"
     env:
