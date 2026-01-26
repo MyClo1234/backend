@@ -144,3 +144,52 @@ class NanoBananaClient:
         except Exception as e:
             logger.error(f"Error during image generation: {e}")
             return None
+
+    def generate_mannequin_composite(
+        self, top_image_url: str, bottom_image_url: str
+    ) -> Optional[str]:
+        """
+        Generate a composite mannequin image with top and bottom items.
+
+        For now, this is a simplified implementation that generates a prompt-based
+        image. In production, you might want to use image editing/compositing APIs.
+
+        Args:
+            top_image_url: URL of the top item image
+            bottom_image_url: URL of the bottom item image
+
+        Returns:
+            URL of the generated composite image (after upload to blob storage)
+        """
+        if not self.model:
+            logger.error("Nano Banana Client is not initialized.")
+            return None
+
+        try:
+            # For now, generate a stylized mannequin image based on description
+            # In production, you would download the images, composite them, and upload
+            prompt = (
+                "A professional fashion mannequin wearing a complete outfit, "
+                "studio lighting, white background, full body view, fashion photography"
+            )
+
+            image_bytes = self.generate_image(prompt)
+
+            if not image_bytes:
+                return None
+
+            # Upload to Azure Blob Storage
+            from app.services.blob_storage import blob_service
+            import uuid
+
+            filename = f"todays-pick-{uuid.uuid4()}.png"
+            image_url = blob_service.upload_to_blob(
+                file_content=image_bytes, filename=filename, content_type="image/png"
+            )
+
+            logger.info(f"Generated composite image: {image_url}")
+            return image_url
+
+        except Exception as e:
+            logger.error(f"Error generating mannequin composite: {e}")
+            return None

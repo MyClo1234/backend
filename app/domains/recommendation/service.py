@@ -377,11 +377,40 @@ class OutfitRecommender:
     ) -> Dict[str, Any]:
         """
         오늘의 추천 코디 (Today's Pick)
-        1. 위치 기반 날씨 조회
-        2. 날씨에 맞는 옷장 아이템 필터링
-        3. 추천 알고리즘 수행
+        1. DB에서 오늘 날짜 추천 확인
+        2. 없으면 LangGraph 워크플로우로 자동 생성
+        3. 결과 반환
         """
-        # 1. 위치 -> 격자 변환 및 날씨 조회
+        from datetime import date
+        from app.llm.todays_pick_workflow import run_todays_pick_workflow
+
+        # 1. Check for existing Today's Pick
+        today = date.today()
+        existing_pick = (
+            db.query(TodaysPick)
+            .filter(
+                TodaysPick.user_id == user_id,
+                TodaysPick.date == today,
+                TodaysPick.is_active == True,
+            )
+            .first()
+        )
+
+        if existing_pick:
+            # Return existing pick
+            return {
+                "success": True,
+                "image_url": existing_pick.image_url,
+                "reasoning": existing_pick.reasoning,
+                "score": existing_pick.score,
+                "weather_summary": existing_pick.weather_snapshot.get("summary", ""),
+                "temp_min": existing_pick.weather_snapshot.get("temp_min"),
+                "temp_max": existing_pick.weather_snapshot.get("temp_max"),
+                "message": "오늘의 추천을 불러왔습니다.",
+            }
+
+        # 2. No existing pick - generate new one via workflow
+        # Get weather첫
         lat_norm, lon_norm, swapped = self._normalize_korea_lat_lon(lat, lon)
         if swapped:
             print("Warning: lat/lon appeared swapped; auto-corrected for Korea grid.")
@@ -406,14 +435,12 @@ class OutfitRecommender:
         )
 
         if not daily_weather:
-            # 날씨 조회 실패 시 기본값 (서울 기준 등) 혹은 에러 처리
-            # 여기서는 편의상 계절 추론을 위해 임의값 설정하거나 에러 반환
             raise Exception(f"Failed to fetch weather: {msg}")
 
         min_temp = daily_weather.min_temp
         max_temp = daily_weather.max_temp
 
-        # 2. 계절 및 날씨 조건 판단
+        # 계절 및 날씨 조건 판단
         target_seasons = []
         weather_summary = (
             f"{daily_weather.region or '현위치'} 기온 {min_temp}°C ~ {max_temp}°C"
@@ -429,8 +456,7 @@ class OutfitRecommender:
             target_seasons = ["SPRING", "FALL"]
             weather_summary += " (선선한 날씨)"
 
-        # 3. 사용자 옷장 조회 (DB)
-        # 상/하의 각각 충분히 가져옴
+        # 사용자 옷장 조회
         tops_data = wardrobe_manager.get_user_wardrobe_items(
             db, user_id, category="top", limit=100
         )
@@ -438,20 +464,22 @@ class OutfitRecommender:
             db, user_id, category="bottom", limit=100
         )
 
-        raw_tops = [item.dict() for item in tops_data.get("items", [])]
-        raw_bottoms = [item.dict() for item in bottoms_data.get("items", [])]
+        raw_tops = [
+            item.model_dump() if hasattr(item, "model_dump") else item.dict()
+            for item in tops_data.get("items", [])
+        ]
+        raw_bottoms = [
+            item.model_dump() if hasattr(item, "model_dump") else item.dict()
+            for item in bottoms_data.get("items", [])
+        ]
 
-        # 4. 날씨/계절 기반 필터링
-        # 아이템의 'season' 속성이 있으면 그것을 우선, 없으면 통과
+        # 날씨/계절 기반 필터링
         filtered_tops = []
         for t in raw_tops:
             item_seasons = t.get("attributes", {}).get("season", [])
-            # 계절 태그가 없으면 모든 계절 허용으로 간주 or 스킵? -> 허용으로 간주
             if not item_seasons:
                 filtered_tops.append(t)
                 continue
-
-            # 교집합이 있으면 추가
             if any(
                 s.upper() in [ts.upper() for ts in target_seasons] for s in item_seasons
             ):
@@ -468,7 +496,6 @@ class OutfitRecommender:
             ):
                 filtered_bottoms.append(b)
 
-        # 필터링 결과가 너무 적으면 필터 해제 (폴백)
         if not filtered_tops:
             filtered_tops = raw_tops
         if not filtered_bottoms:
@@ -484,31 +511,40 @@ class OutfitRecommender:
                 "message": "옷장에 상의 또는 하의가 충분하지 않습니다.",
             }
 
-        # 5. 추천 실행 (LLM 사용)
-        # recommend_with_llm returns List[Dict]
-        recommendations = self.recommend_with_llm(
-            filtered_tops, filtered_bottoms, count=1
+        # 3. Run workflow
+        weather_info = {
+            "summary": weather_summary,
+            "temp_min": min_temp,
+            "temp_max": max_temp,
+            "region": daily_weather.region,
+        }
+
+        result = run_todays_pick_workflow(
+            db=db,
+            user_id=str(user_id),
+            tops=filtered_tops,
+            bottoms=filtered_bottoms,
+            weather=weather_info,
         )
 
-        if not recommendations:
+        if result.get("error"):
             return {
                 "success": False,
                 "weather_summary": weather_summary,
                 "temp_min": min_temp,
                 "temp_max": max_temp,
-                "outfit": None,
-                "message": "적절한 코디를 찾지 못했습니다.",
+                "message": f"추천 생성 실패: {result['error']}",
             }
-
-        best_pick = recommendations[0]
 
         return {
             "success": True,
+            "image_url": result["composite_image_url"],
+            "reasoning": result["reasoning"],
+            "score": result["score"],
             "weather_summary": weather_summary,
             "temp_min": min_temp,
             "temp_max": max_temp,
-            "outfit": best_pick,
-            "message": "추천이 완료되었습니다.",
+            "message": "새로운 추천을 생성했습니다.",
         }
 
     def save_todays_pick(
