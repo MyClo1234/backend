@@ -46,3 +46,6 @@ azure_config.json
 *.tmp
 *.temp
 .cache/
+
+# Closet for test (dummy data for test)
+closet/
