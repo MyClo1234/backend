@@ -28,7 +28,7 @@ async def get_today_summary(
     ny = region_data["ny"]
 
     # 2. 날씨 데이터 조회 (Region 이름으로 캐싱/조회)
-    weather_data, msg = weather_service.get_daily_weather_summary(
+    weather_data, msg = await weather_service.get_daily_weather_summary(
         db, nx, ny, region_name
     )
 
@@ -43,3 +43,10 @@ async def get_today_summary(
     # SQLAlchemy 객체는 동적 속성 할당이 가능함
     weather_data.message = msg
     return weather_data
+
+
+@router.get("/weather/batch")
+async def fetchAndLoadWeather(
+    db: Session = Depends(get_db),
+):
+    return await weather_service.fetchAndLoadWeather(db)

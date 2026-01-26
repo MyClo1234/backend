@@ -14,7 +14,8 @@ from app.utils.json_parser import parse_json_from_text
 
 def generate_candidates_node(state: RecommendationState) -> RecommendationState:
     """후보 코디 조합 생성 노드 (규칙 기반)"""
-    from app.services.recommender import recommender
+    # recommender 위치 변경(도메인 구조) 하위호환
+    from app.domains.recommendation.service import recommender
     
     tops = state.get("tops", [])
     bottoms = state.get("bottoms", [])
@@ -63,10 +64,10 @@ def prepare_llm_input_node(state: RecommendationState) -> RecommendationState:
             candidate_tops[top_id] = top
             tops_summary.append({
                 "id": top_id,
-                "cat": attrs.get("category", {}).get("sub", "unknown"),
-                "col": attrs.get("color", {}).get("primary", "unknown"),
-                "style": attrs.get("style_tags", [])[:3],
-                "form": round(attrs.get("scores", {}).get("formality", 0.5), 2)
+                "cat": (attrs.get("category") or {}).get("sub", "unknown") if isinstance(attrs, dict) else "unknown",
+                "col": (attrs.get("color") or {}).get("primary", "unknown") if isinstance(attrs, dict) else "unknown",
+                "style": ((attrs.get("style_tags") or [])[:3] if isinstance(attrs, dict) else []),
+                "form": round(((attrs.get("scores") or {}).get("formality", 0.5) if isinstance(attrs, dict) else 0.5), 2),
             })
         
         if bottom_id not in candidate_bottoms:
@@ -74,10 +75,10 @@ def prepare_llm_input_node(state: RecommendationState) -> RecommendationState:
             candidate_bottoms[bottom_id] = bottom
             bottoms_summary.append({
                 "id": bottom_id,
-                "cat": attrs.get("category", {}).get("sub", "unknown"),
-                "col": attrs.get("color", {}).get("primary", "unknown"),
-                "style": attrs.get("style_tags", [])[:3],
-                "form": round(attrs.get("scores", {}).get("formality", 0.5), 2)
+                "cat": (attrs.get("category") or {}).get("sub", "unknown") if isinstance(attrs, dict) else "unknown",
+                "col": (attrs.get("color") or {}).get("primary", "unknown") if isinstance(attrs, dict) else "unknown",
+                "style": ((attrs.get("style_tags") or [])[:3] if isinstance(attrs, dict) else []),
+                "form": round(((attrs.get("scores") or {}).get("formality", 0.5) if isinstance(attrs, dict) else 0.5), 2),
             })
     
     state["metadata"] = {
@@ -188,14 +189,20 @@ def fallback_recommendation_node(state: RecommendationState) -> RecommendationSt
     if candidates:
         final_outfits = []
         for candidate in candidates[:count]:
+            top_attrs = candidate.get("top", {}).get("attributes", {}) or {}
+            bottom_attrs = candidate.get("bottom", {}).get("attributes", {}) or {}
+            top_cat = (top_attrs.get("category") or {}) if isinstance(top_attrs, dict) else {}
+            bottom_cat = (
+                (bottom_attrs.get("category") or {}) if isinstance(bottom_attrs, dict) else {}
+            )
             final_outfits.append({
                 "top": candidate["top"],
                 "bottom": candidate["bottom"],
                 "score": candidate["score"],
                 "reasoning": "규칙 기반 추천",
                 "style_description": (
-                    f"{candidate['top'].get('attributes', {}).get('category', {}).get('sub', 'Top')} & "
-                    f"{candidate['bottom'].get('attributes', {}).get('category', {}).get('sub', 'Bottom')}"
+                    f"{(top_cat.get('sub') or top_cat.get('main') or 'Top')} & "
+                    f"{(bottom_cat.get('sub') or bottom_cat.get('main') or 'Bottom')}"
                 ),
                 "reasons": candidate.get("reasons", [])
             })

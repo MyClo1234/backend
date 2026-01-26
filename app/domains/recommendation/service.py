@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Tuple, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
 from app.ai.workflows.recommendation_workflow import recommend_outfits
+from app.core.regions import get_nearest_region
 from app.domains.weather.service import weather_service
 from app.domains.weather.utils import dfs_xy_conv
 from app.domains.wardrobe.service import wardrobe_manager
@@ -34,6 +35,42 @@ class OutfitRecommender:
         }
         self.cache = {}
         self.cache_max_size = 100
+
+    @staticmethod
+    def _as_dict(value: Any) -> Dict[str, Any]:
+        """None/모델/기타 타입을 안전하게 dict로 변환합니다."""
+        if value is None:
+            return {}
+        if isinstance(value, dict):
+            return value
+        # Pydantic v2
+        if hasattr(value, "model_dump"):
+            try:
+                dumped = value.model_dump()
+                return dumped if isinstance(dumped, dict) else {}
+            except Exception:
+                return {}
+        # Pydantic v1
+        if hasattr(value, "dict"):
+            try:
+                dumped = value.dict()
+                return dumped if isinstance(dumped, dict) else {}
+            except Exception:
+                return {}
+        return {}
+
+    @staticmethod
+    def _as_list(value: Any) -> List[Any]:
+        """None/단일값/튜플 등을 안전하게 list로 변환합니다."""
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, tuple):
+            return list(value)
+        if isinstance(value, str):
+            return [value]
+        return []
 
     def get_color_hue(self, color: str) -> Optional[float]:
         return self.color_wheel.get(color.lower(), None)
@@ -104,25 +141,50 @@ class OutfitRecommender:
     def calculate_outfit_score(
         self, top: Dict[str, Any], bottom: Dict[str, Any]
     ) -> Tuple[float, List[str]]:
-        top_attrs = top.get("attributes", {})
-        bottom_attrs = bottom.get("attributes", {})
+        top_attrs = self._as_dict(top.get("attributes"))
+        bottom_attrs = self._as_dict(bottom.get("attributes"))
 
-        top_color = top_attrs.get("color", {}).get("primary", "unknown")
-        bottom_color = bottom_attrs.get("color", {}).get("primary", "unknown")
+        top_color_raw = top_attrs.get("color")
+        bottom_color_raw = bottom_attrs.get("color")
+        top_color = (
+            top_color_raw
+            if isinstance(top_color_raw, str)
+            else (self._as_dict(top_color_raw).get("primary") or "unknown")
+        )
+        bottom_color = (
+            bottom_color_raw
+            if isinstance(bottom_color_raw, str)
+            else (self._as_dict(bottom_color_raw).get("primary") or "unknown")
+        )
         color_score = self.calculate_color_harmony(top_color, bottom_color)
 
-        top_styles = top_attrs.get("style_tags", [])
-        bottom_styles = bottom_attrs.get("style_tags", [])
+        top_styles = [s for s in self._as_list(top_attrs.get("style_tags")) if isinstance(s, str)]
+        bottom_styles = [s for s in self._as_list(bottom_attrs.get("style_tags")) if isinstance(s, str)]
         style_score = self.calculate_style_match(top_styles, bottom_styles)
 
-        top_formality = top_attrs.get("scores", {}).get("formality", 0.5)
-        bottom_formality = bottom_attrs.get("scores", {}).get("formality", 0.5)
+        top_scores = self._as_dict(top_attrs.get("scores"))
+        bottom_scores = self._as_dict(bottom_attrs.get("scores"))
+
+        top_formality_raw = top_scores.get("formality", 0.5)
+        bottom_formality_raw = bottom_scores.get("formality", 0.5)
+        try:
+            top_formality = float(top_formality_raw) if top_formality_raw is not None else 0.5
+        except (TypeError, ValueError):
+            top_formality = 0.5
+        try:
+            bottom_formality = float(bottom_formality_raw) if bottom_formality_raw is not None else 0.5
+        except (TypeError, ValueError):
+            bottom_formality = 0.5
         formality_score = self.calculate_formality_match(
             top_formality, bottom_formality
         )
 
-        top_seasons = top_attrs.get("scores", {}).get("season", [])
-        bottom_seasons = bottom_attrs.get("scores", {}).get("season", [])
+        top_seasons = [
+            s for s in self._as_list(top_scores.get("season")) if isinstance(s, str)
+        ]
+        bottom_seasons = [
+            s for s in self._as_list(bottom_scores.get("season")) if isinstance(s, str)
+        ]
         season_score = self.calculate_season_match(top_seasons, bottom_seasons)
 
         total_score = (
@@ -246,6 +308,10 @@ class OutfitRecommender:
         for top in tops:
             for bottom in bottoms:
                 score, reasons = self.calculate_outfit_score(top, bottom)
+                top_cat = self._as_dict(self._as_dict(top.get("attributes")).get("category"))
+                bottom_cat = self._as_dict(
+                    self._as_dict(bottom.get("attributes")).get("category")
+                )
                 candidates.append(
                     {
                         "top": top,
@@ -254,8 +320,8 @@ class OutfitRecommender:
                         "reasons": reasons,
                         "reasoning": ", ".join(reasons),
                         "style_description": (
-                            f"{top.get('attributes', {}).get('category', {}).get('sub', 'Top')} & "
-                            f"{bottom.get('attributes', {}).get('category', {}).get('sub', 'Bottom')}"
+                            f"{(top_cat.get('sub') or top_cat.get('main') or 'Top')} & "
+                            f"{(bottom_cat.get('sub') or bottom_cat.get('main') or 'Bottom')}"
                         ),
                     }
                 )
@@ -280,6 +346,21 @@ class OutfitRecommender:
         """
         return self.recommend_with_llm(tops, bottoms, count)
 
+    @staticmethod
+    def _normalize_korea_lat_lon(lat: float, lon: float) -> Tuple[float, float, bool]:
+        """
+        위경도 입력이 뒤바뀌는 케이스(예: lat=126.x, lon=37.x)를 자동 보정합니다.
+        - 정상 범위(대한민국 대략 범위): lat 33~39.5, lon 124~132
+        """
+        in_korea = 33.0 <= lat <= 39.5 and 124.0 <= lon <= 132.0
+        looks_swapped = 33.0 <= lon <= 39.5 and 124.0 <= lat <= 132.0
+
+        if in_korea:
+            return lat, lon, False
+        if looks_swapped:
+            return lon, lat, True
+        return lat, lon, False
+
     def get_todays_pick(
         self, db: Session, user_id: UUID, lat: float, lon: float
     ) -> Dict[str, Any]:
@@ -290,10 +371,28 @@ class OutfitRecommender:
         3. 추천 알고리즘 수행
         """
         # 1. 위치 -> 격자 변환 및 날씨 조회
-        grid = dfs_xy_conv("toGRID", lat, lon)
-        nx, ny = grid["x"], grid["y"]
+        lat_norm, lon_norm, swapped = self._normalize_korea_lat_lon(lat, lon)
+        if swapped:
+            print("Warning: lat/lon appeared swapped; auto-corrected for Korea grid.")
 
-        daily_weather, msg = weather_service.get_daily_weather_summary(db, nx, ny)
+        # 우선 가장 가까운 대표 지역(캐싱/폴백용)
+        region_name, region_data = get_nearest_region(lat_norm, lon_norm)
+
+        # 실제 격자 변환 시도 (정확 위치)
+        grid = dfs_xy_conv("toGRID", lat_norm, lon_norm)
+        nx, ny = grid.get("x"), grid.get("y")
+
+        # 변환 결과가 비정상일 경우 대표 지역 격자로 폴백
+        if not isinstance(nx, (int, float)) or not isinstance(ny, (int, float)):
+            nx, ny = region_data["nx"], region_data["ny"]
+        elif nx < 0 or ny < 0 or nx > 300 or ny > 300:
+            nx, ny = region_data["nx"], region_data["ny"]
+        else:
+            nx, ny = int(nx), int(ny)
+
+        daily_weather, msg = weather_service.get_daily_weather_summary(
+            db, nx, ny, region_name
+        )
 
         if not daily_weather:
             # 날씨 조회 실패 시 기본값 (서울 기준 등) 혹은 에러 처리
