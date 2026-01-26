@@ -54,3 +54,15 @@ azure_config.json
 
 # Closet for test (dummy data for test)
 closet/
+
+# Sisyphus files
+.sisyphus/
+
+# Ruff cache
+.ruff_cache/
+# Azurite Emulator
+__azurite_db*__.json
+__blobstorage__
+__queuestorage__
+__tablestorage__
+AzuriteConfig
