@@ -1,24 +1,46 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "func: host start",
-            "type": "shell",
-            "command": ".\\.venv\\Scripts\\Activate.ps1; $env:languageWorkers__python__arguments='-m debugpy --listen 127.0.0.1:9091'; func host start",
-            "problemMatcher": "$func-python-watch",
-            "isBackground": true,
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "dependsOn": "uv sync"
-        },
-        {
-            "label": "uv sync",
-            "type": "shell",
-            "command": "uv sync",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "func: host start",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\Activate.ps1; $env:languageWorkers__python__arguments='-m debugpy --listen 127.0.0.1:9091'; func host start",
+      "problemMatcher": "$func-python-watch",
+      "isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "dependsOn": "uv sync"
+    },
+    {
+      "label": "uv sync",
+      "type": "shell",
+      "command": "uv sync",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "type": "func",
+      "label": "func: host start",
+      "command": "host start",
+      "problemMatcher": "$func-python-watch",
+      "isBackground": true,
+      "dependsOn": "pip install (functions)"
+    },
+    {
+      "label": "pip install (functions)",
+      "type": "shell",
+      "osx": {
+        "command": "${config:azureFunctions.pythonVenv}/bin/python -m pip install -r requirements.txt"
+      },
+      "windows": {
+        "command": "${config:azureFunctions.pythonVenv}\\Scripts\\python -m pip install -r requirements.txt"
+      },
+      "linux": {
+        "command": "${config:azureFunctions.pythonVenv}/bin/python -m pip install -r requirements.txt"
+      },
+      "problemMatcher": []
+    }
+  ]
 }
