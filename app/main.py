@@ -40,7 +40,7 @@ logging.getLogger("app").setLevel(logging.DEBUG)
 # 데이터베이스 및 인증 관련 (파일이 존재할 때만 import)
 try:
     from app.database import engine, Base
-    from app.models import user
+    from app.domains.user import model as user_model
     from app.domains.auth.router import router as auth_router
 
     HAS_DB = True
@@ -68,8 +68,12 @@ def create_app() -> FastAPI:
     )
 
     # Mount static files for images
-    os.makedirs("app/static", exist_ok=True)
-    app.mount("/static", StaticFiles(directory="app/static"), name="static")
+    # Mount static files for images
+    # Ensure directory exists
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    os.makedirs(static_dir, exist_ok=True)
+    if os.path.exists(static_dir):
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     # Include routers
     app.include_router(weather_router, prefix="/api", tags=["Weather"])
