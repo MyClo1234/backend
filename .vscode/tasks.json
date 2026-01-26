@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "func: host start",
+            "type": "shell",
+            "command": ".\\.venv\\Scripts\\Activate.ps1; $env:languageWorkers__python__arguments='-m debugpy --listen 127.0.0.1:9091'; func host start",
+            "problemMatcher": "$func-python-watch",
+            "isBackground": true,
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "dependsOn": "uv sync"
+        },
+        {
+            "label": "uv sync",
+            "type": "shell",
+            "command": "uv sync",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        }
+    ]
+}

@@ -31,7 +31,9 @@ class Config:
     AZURE_STORAGE_CONTAINER_NAME = os.getenv("AZURE_STORAGE_CONTAINER_NAME", "images")
 
     # KMA Weather API Configuration
-    KMA_API_KEY = os.getenv("KMA_API_KEY", "")
+    # NOTE: 프로젝트 내 설정 파일(.env / local.settings.json)에서 키 이름이
+    # `KMA_SERVICE_KEY`로 쓰이는 경우가 있어 하위 호환을 지원합니다.
+    KMA_API_KEY = os.getenv("KMA_API_KEY") or os.getenv("KMA_SERVICE_KEY", "")
 
     @property
     def DATABASE_URL(self):
@@ -71,7 +73,7 @@ class Config:
                 "       Please set AZURE_STORAGE_ACCOUNT_NAME in .env file or environment variables."
             )
         if not Config.KMA_API_KEY:
-            print("Warning: KMA_API_KEY environment variable is not set.")
+            print("Warning: KMA API key environment variable is not set.")
             print(
-                "       Please set KMA_API_KEY in .env file or environment variables."
+                "       Please set KMA_API_KEY (or KMA_SERVICE_KEY) in .env/local.settings.json or environment variables."
             )

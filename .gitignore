@@ -51,5 +51,6 @@ azure_config.json
 
 # Workspace files
 *.code-workspace
+
 # Closet for test (dummy data for test)
 closet/

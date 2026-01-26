@@ -1,13 +1,64 @@
 from typing import Optional
-from fastapi import APIRouter, Query, HTTPException
+from uuid import UUID
+from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import JWTError, jwt
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.core.security import ALGORITHM, SECRET_KEY
 from app.domains.wardrobe.service import wardrobe_manager
 from .service import recommender
-from .schema import RecommendationResponse, OutfitScoreResponse
+from .schema import (
+    RecommendationResponse,
+    OutfitScoreResponse,
+    TodaysPickRequest,
+    TodaysPickResponse,
+)
 from app.domains.wardrobe.schema import WardrobeItemSchema
 from app.schemas.common import AttributesSchema
 from app.utils.response_helpers import create_success_response, handle_route_exception
 
 recommendation_router = APIRouter()
+security = HTTPBearer()
+
+
+def get_user_id_from_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> UUID:
+    """JWT 토큰에서 user_id를 추출하는 헬퍼 함수"""
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id_str = payload.get("user_id")
+        if user_id_str is None:
+            raise credentials_exception
+        return UUID(user_id_str)
+    except (JWTError, ValueError) as e:
+        raise credentials_exception
+
+
+@recommendation_router.post("/recommend/todays-pick", response_model=TodaysPickResponse)
+def recommend_todays_pick(
+    request: TodaysPickRequest,
+    user_id: UUID = Depends(get_user_id_from_token),
+    db: Session = Depends(get_db),
+):
+    """
+    오늘의 추천 코디 (Today's Pick)
+
+    사용자의 위치(위도, 경도)를 기반으로 날씨를 조회하고,
+    사용자의 옷장에서 현재 날씨/계절에 적합한 옷을 찾아 추천합니다.
+    """
+    try:
+        result = recommender.get_todays_pick(db, user_id, request.lat, request.lon)
+        return result
+    except Exception as e:
+        raise handle_route_exception(e)
 
 
 @recommendation_router.get("/outfit/score", response_model=OutfitScoreResponse)

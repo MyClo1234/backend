@@ -9,7 +9,7 @@ params = {
     "pageNo": "1",
     "numOfRows": "1000",
     "dataType": "JSON",
-    "base_date": "20260123",
+    "base_date": "20260126",
     "base_time": "0500",
     "nx": "55",
     "ny": "127",
