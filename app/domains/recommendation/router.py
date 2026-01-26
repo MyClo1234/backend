@@ -15,7 +15,7 @@ from .schema import (
     TodaysPickResponse,
 )
 from app.domains.wardrobe.schema import WardrobeItemSchema
-from app.core.schemas import AttributesSchema
+from app.schemas.common import AttributesSchema
 from app.utils.response_helpers import create_success_response, handle_route_exception
 
 recommendation_router = APIRouter()
@@ -115,11 +115,6 @@ def recommend_outfit(
             for item in all_items
             if item.get("attributes", {}).get("category", {}).get("main") == "bottom"
         ]
-        outers = [
-            item
-            for item in all_items
-            if item.get("attributes", {}).get("category", {}).get("main") == "outer"
-        ]
 
         if not tops or not bottoms:
             return create_success_response(
@@ -142,12 +137,6 @@ def recommend_outfit(
                 if season.lower()
                 in b.get("attributes", {}).get("scores", {}).get("season", [])
             ]
-            outers = [
-                o
-                for o in outers
-                if season.lower()
-                in o.get("attributes", {}).get("scores", {}).get("season", [])
-            ]
 
         if formality is not None:
             tops = [
@@ -168,15 +157,6 @@ def recommend_outfit(
                 )
                 <= 0.3
             ]
-            outers = [
-                o
-                for o in outers
-                if abs(
-                    o.get("attributes", {}).get("scores", {}).get("formality", 0.5)
-                    - formality
-                )
-                <= 0.3
-            ]
 
         if not tops or not bottoms:
             return create_success_response(
@@ -189,11 +169,7 @@ def recommend_outfit(
         # Use Azure OpenAI (via LangGraph workflow) for recommendation
         if use_llm:
             try:
-                # Modifying this call to pass outers.
-                # Note: recommender.recommend_with_llm needs to be updated too.
-                recommendations = recommender.recommend_with_llm(
-                    tops, bottoms, count, outers=outers
-                )
+                recommendations = recommender.recommend_with_llm(tops, bottoms, count)
                 if recommendations:
                     return create_success_response(
                         {"outfits": recommendations},
@@ -202,14 +178,9 @@ def recommend_outfit(
                     )
             except Exception as e:
                 print(f"LLM recommendation error: {e}")
-                import traceback
-
-                traceback.print_exc()
                 # Fall through to rule-based fallback
 
         # Fallback: rule-based recommendation
-        # rule based currently ignores outers or needs update?
-        # For now, keep as is (Top/Bottom only)
         recommendations = recommender._rule_based_recommendation(tops, bottoms, count)
         return create_success_response(
             {"outfits": recommendations},

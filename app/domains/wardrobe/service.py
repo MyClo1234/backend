@@ -22,7 +22,7 @@ from app.utils.validators import validate_file_extension
 
 logger = logging.getLogger(__name__)
 from .schema import WardrobeResponse, WardrobeItemSchema
-from app.core.schemas import AttributesSchema, CategoryModel
+from app.schemas.common import AttributesSchema, CategoryModel
 
 
 class WardrobeManager:

@@ -21,33 +21,7 @@ class Config:
     AZURE_DALLE_DEPLOYMENT_NAME = os.getenv(
         "AZURE_DALLE_DEPLOYMENT_NAME", "codify-dall-e-3"
     )
-    AZURE_DALLE_MODEL_VERSION = os.getenv(
-        "AZURE_DALLE_MODEL_VERSION", "2024-04-01-preview"
-    )
-
-    # Google Cloud Configuration
-    GOOGLE_APPLICATION_CREDENTIALS = os.getenv(
-        "GOOGLE_APPLICATION_CREDENTIALS", "google_credentials.json"
-    )
-    GOOGLE_CLOUD_PROJECT = os.getenv(
-        "GOOGLE_CLOUD_PROJECT", "industrial-keep-485507-g3"
-    )
-    GOOGLE_CLOUD_LOCATION = os.getenv(
-        "GOOGLE_CLOUD_LOCATION", "us-central1"
-    )  # Vertex AI is regional
-
-    # Google Credentials (Split)
-    GOOGLE_TYPE = os.getenv("GOOGLE_TYPE", "service_account")
-    GOOGLE_PROJECT_ID = os.getenv("GOOGLE_PROJECT_ID", GOOGLE_CLOUD_PROJECT)
-    GOOGLE_PRIVATE_KEY_ID = os.getenv("GOOGLE_PRIVATE_KEY_ID")
-    GOOGLE_PRIVATE_KEY = os.getenv("GOOGLE_PRIVATE_KEY")
-    GOOGLE_CLIENT_EMAIL = os.getenv("GOOGLE_CLIENT_EMAIL")
-    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-    GOOGLE_AUTH_URI = os.getenv("GOOGLE_AUTH_URI")
-    GOOGLE_TOKEN_URI = os.getenv("GOOGLE_TOKEN_URI")
-    GOOGLE_AUTH_PROVIDER_X509_CERT_URL = os.getenv("GOOGLE_AUTH_PROVIDER_X509_CERT_URL")
-    GOOGLE_CLIENT_X509_CERT_URL = os.getenv("GOOGLE_CLIENT_X509_CERT_URL")
-    GOOGLE_UNIVERSE_DOMAIN = os.getenv("GOOGLE_UNIVERSE_DOMAIN", "googleapis.com")
+    AZURE_DALLE_MODEL_VERSION = os.getenv("AZURE_DALLE_MODEL_VERSION", "2024-04-01-preview")
 
     # Security
 
@@ -72,11 +46,7 @@ class Config:
 
     @property
     def DATABASE_URL(self):
-        url = f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        # Azure Postgres requires SSL
-        if "azure" in self.POSTGRES_SERVER and "?" not in url:
-            url += "?sslmode=require"
-        return url
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     # Validation
     MAX_FILE_SIZE = 15 * 1024 * 1024  # 15MB
@@ -126,9 +96,4 @@ class Config:
             print("Warning: AZURE_DALLE_ENDPOINT environment variable is not set.")
             print(
                 "       Please set AZURE_DALLE_ENDPOINT in .env file or environment variables."
-            )
-
-        if not os.path.exists(Config.GOOGLE_APPLICATION_CREDENTIALS):
-            print(
-                f"Warning: Google Credentials file not found at {Config.GOOGLE_APPLICATION_CREDENTIALS}"
             )

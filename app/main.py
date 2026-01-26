@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import Config
-from app.core.health import health_router
+from app.routers.health_routes import health_router
 from app.domains.extraction.router import extraction_router
 from app.domains.wardrobe.router import wardrobe_router
 from app.domains.recommendation.router import recommendation_router
@@ -42,17 +42,16 @@ logging.getLogger("app").setLevel(logging.DEBUG)
 # 데이터베이스 및 인증 관련 (파일이 존재할 때만 import)
 
 from app.database import engine, Base
-from app.domains.user import model as user_model
-
-# Ensure all SQLAlchemy models are imported/registered before first DB usage.
-# Without this, relationships like relationship("OutfitLog") may fail to resolve.
-# import app.models as _models  # noqa: F401
-from app.domains.user.model import User
-from app.domains.wardrobe.model import ClosetItem
-from app.domains.outfit.model import OutfitLog, OutfitItem
-from app.domains.chat.model import ChatSession, ChatMessage
-from app.domains.weather.model import DailyWeather
-from app.domains.recommendation.model import TodaysPick
+from app.models import (
+    User,
+    ClosetItem,
+    OutfitLog,
+    OutfitItem,
+    ChatSession,
+    ChatMessage,
+    DailyWeather,
+    TodaysPick,
+)
 from app.domains.auth.router import router as auth_router
 
 HAS_DB = True
@@ -99,7 +98,6 @@ def create_app() -> FastAPI:
     from app.domains.chat.router import chat_router
 
     app.include_router(chat_router, prefix="/api", tags=["Chat"])
-
     # User router
 
     if HAS_DB:

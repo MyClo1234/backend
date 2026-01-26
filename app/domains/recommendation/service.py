@@ -10,7 +10,6 @@ from app.core.config import Config
 from app.domains.weather.service import weather_service
 from app.domains.weather.utils import dfs_xy_conv
 from app.domains.wardrobe.service import wardrobe_manager
-from app.domains.recommendation.model import TodaysPick
 
 logger = logging.getLogger(__name__)
 
@@ -392,6 +391,7 @@ class OutfitRecommender:
         from app.core.regions import get_nearest_region
         from app.domains.weather.utils import dfs_xy_conv
         from datetime import date
+        from app.models import TodaysPick
 
         # 1. 오늘 이미 생성된 추천이 있는지 확인
         today = date.today()
@@ -471,47 +471,6 @@ class OutfitRecommender:
                 f"Unexpected error creating Today's Pick: {str(e)}", exc_info=True
             )
             raise HTTPException(status_code=500, detail=f"추천 생성 실패: {str(e)}")
-
-    def save_todays_pick(
-        self,
-        db: Session,
-        user_id: UUID,
-        recommendation: Dict[str, Any],
-        weather_info: Dict[str, Any],
-    ) -> TodaysPick:
-        """추천된 오늘의 코디를 DB에 저장하고 기존 활성 픽을 비활성화"""
-        try:
-            # 1. 기존 활성 픽 비활성화
-            db.query(TodaysPick).filter(
-                TodaysPick.user_id == user_id, TodaysPick.is_active == True
-            ).update({"is_active": False})
-
-            # 2. 새 픽 저장
-            from datetime import date
-
-            top_id = recommendation.get("top", {}).get("id")
-            bottom_id = recommendation.get("bottom", {}).get("id")
-
-            new_pick = TodaysPick(
-                user_id=user_id,
-                date=date.today(),
-                top_id=int(top_id) if top_id else None,
-                bottom_id=int(bottom_id) if bottom_id else None,
-                image_url=recommendation.get("generated_image_url"),
-                reasoning=recommendation.get("reasoning"),
-                weather_snapshot=weather_info,
-                is_active=True,
-            )
-
-            db.add(new_pick)
-            db.commit()
-            db.refresh(new_pick)
-            return new_pick
-
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Error saving Today's Pick: {e}")
-            raise e
 
 
 recommender = OutfitRecommender()
