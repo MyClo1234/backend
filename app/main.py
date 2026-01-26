@@ -68,8 +68,10 @@ def create_app() -> FastAPI:
     )
 
     # Mount static files for images
-    # Ensure directory exists (though we just created it)
+    # Mount static files for images
+    # Ensure directory exists
     static_dir = os.path.join(os.path.dirname(__file__), "static")
+    os.makedirs(static_dir, exist_ok=True)
     if os.path.exists(static_dir):
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
