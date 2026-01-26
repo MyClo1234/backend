@@ -6,7 +6,6 @@ trigger:
 pool:
   name: 'codify-self-host-ci-cd'
 
-
 steps:
   # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
   - script: |
@@ -41,13 +40,10 @@ steps:
   #     set -euo pipefail
   #     source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
   #     source .venv/bin/activate
-      
+  #
   #     export CI=true
-  #     # Self-hosted agent setup: use local Postgres directly
-  #     # Connect to 127.0.0.1 to avoid IPv6 issues
-  #     # Use the 'choeseonghyeon' user that owns the visible Postgres process
   #     export DATABASE_URL="postgresql://choeseonghyeon@127.0.0.1:5432/codify_test"
-      
+  #
   #     pytest -v
   #   displayName: "Run Tests with pytest"
 
@@ -80,6 +76,25 @@ steps:
         | sed -n '1,80p'
     displayName: "Verify zip contents"
 
+  # 4-1) host.json / function_app.py 가 zip "루트"에 있는지 확인 (경로 포함 여부 체크)
+  - script: |
+      set -euo pipefail
+
+      echo "== Check host.json path (must be root) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "host.json$" || true
+
+      echo "== Check function_app.py path (must be root) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "function_app.py$" || true
+
+      echo "== Root-level entries (no folders) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" \
+        | awk '{print $4}' \
+        | grep -v '^$' \
+        | grep -v '/.*' \
+        | sort \
+        | sed -n '1,120p'
+    displayName: "Verify zip root paths (host.json/function_app.py)"
+
   # 5) OneDeploy로 배포
   - script: |
       set -euo pipefail
@@ -107,14 +122,6 @@ steps:
         return 0
       }
 
-      # -f: fail on HTTP error
-      # -v: verbose
-      # --retry 5: curl internal retry
-      # --retry-delay 5: delay between internal retries
-      # --retry-connrefused: retry on connection refused
-      # --connect-timeout 60: timeout for connection
-      # --max-time 300: max time for whole operation
-      
       curl_retry 5 -f -v -u "${USER}:${PASS}" \
         --retry 5 \
         --retry-delay 5 \
@@ -128,4 +135,3 @@ steps:
     env:
       USER: '$(DEPLOY_USER)'
       PASS: '$(DEPLOY_PWD)'
-
