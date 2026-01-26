@@ -40,7 +40,7 @@ logging.getLogger("app").setLevel(logging.DEBUG)
 # 데이터베이스 및 인증 관련 (파일이 존재할 때만 import)
 try:
     from app.database import engine, Base
-    from app.models import user
+    from app.domains.user import model as user_model
     from app.domains.auth.router import router as auth_router
 
     HAS_DB = True
