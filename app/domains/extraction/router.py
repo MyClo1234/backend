@@ -7,7 +7,7 @@ from app.domains.user.model import User
 from .service import extractor
 from app.domains.wardrobe.service import wardrobe_manager
 from .schema import ExtractionResponse, ExtractionUrlResponse
-from app.core.schemas import AttributesSchema
+from app.schemas.common import AttributesSchema
 from app.utils.validators import validate_uploaded_file
 from app.utils.response_helpers import handle_route_exception
 
