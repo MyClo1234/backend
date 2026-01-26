@@ -67,9 +67,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Mount static files for images - REMOVED for Azure Functions (using Blob Storage)
-    # os.makedirs(Config.OUTPUT_DIR, exist_ok=True)
-    # app.mount("/api/images", StaticFiles(directory=Config.OUTPUT_DIR), name="images")
+    # Mount static files for images
+    # Ensure directory exists (though we just created it)
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    if os.path.exists(static_dir):
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     # Include routers
     app.include_router(weather_router, prefix="/api", tags=["Weather"])
