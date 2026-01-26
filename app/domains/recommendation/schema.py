@@ -27,3 +27,17 @@ class RecommendationResponse(BaseModel):
     count: int
     method: str
     message: Optional[str] = None
+
+
+class TodaysPickRequest(BaseModel):
+    lat: float
+    lon: float
+
+
+class TodaysPickResponse(BaseModel):
+    success: bool
+    weather_summary: str
+    temp_min: float
+    temp_max: float
+    outfit: Optional[OutfitRecommendationSchema] = None
+    message: Optional[str] = None
