@@ -21,8 +21,16 @@ steps:
       rm -rf .python_packages
       mkdir -p .python_packages/lib/site-packages
 
-      # 3. Install dependencies with uv (for artifact)
-      uv pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+      # ---------------------------------------------------------------
+      # [수정됨] 3. Install dependencies with uv (For Azure Linux Environment)
+      # Mac에서 빌드하더라도 강제로 'linux'용 라이브러리를 설치합니다.
+      # ---------------------------------------------------------------
+      echo "Installing dependencies for Linux (x86_64)..."
+      uv pip install \
+        --target ".python_packages/lib/site-packages" \
+        --python-platform linux \
+        --python-version 3.11 \
+        -r requirements.txt
 
       # 4. Install dependencies for Testing (into venv)
       source .venv/bin/activate
