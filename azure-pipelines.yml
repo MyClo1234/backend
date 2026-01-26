@@ -1,9 +1,11 @@
 trigger:
 - main
 - dev
+- test/*
 
 pool:
   name: 'codify-self-host-ci-cd'
+
 
 steps:
   # 1) PEP 668 회피: venv 만들어서 pip 사용 + .python_packages에 설치
@@ -19,8 +21,13 @@ steps:
       rm -rf .python_packages
       mkdir -p .python_packages/lib/site-packages
 
-      # 3. Install dependencies with uv
+      # 3. Install dependencies with uv (for artifact)
       uv pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+
+      # 4. Install dependencies for Testing (into venv)
+      source .venv/bin/activate
+      uv pip install -r requirements.txt
+      uv pip install -r requirements-dev.txt
 
       echo "Installed packages count:"
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | wc -l
@@ -29,7 +36,22 @@ steps:
       find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
     displayName: "Install dependencies with uv"
 
-  # 2) zip 전에 필수 파일 존재 체크
+  # 2) Run Tests
+  # - script: |
+  #     set -euo pipefail
+  #     source $HOME/.cargo/env || export PATH="$HOME/.local/bin:$PATH"
+  #     source .venv/bin/activate
+      
+  #     export CI=true
+  #     # Self-hosted agent setup: use local Postgres directly
+  #     # Connect to 127.0.0.1 to avoid IPv6 issues
+  #     # Use the 'choeseonghyeon' user that owns the visible Postgres process
+  #     export DATABASE_URL="postgresql://choeseonghyeon@127.0.0.1:5432/codify_test"
+      
+  #     pytest -v
+  #   displayName: "Run Tests with pytest"
+
+  # 3) zip 전에 필수 파일 존재 체크
   - script: |
       set -euo pipefail
       test -f host.json

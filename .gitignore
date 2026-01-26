@@ -22,7 +22,7 @@ venv.bak/
 
 # IDE
 .idea/
-.vscode/
+
 *.swp
 *.swo
 *~
@@ -46,3 +46,8 @@ azure_config.json
 *.tmp
 *.temp
 .cache/
+
+.python_packages
+
+# Workspace files
+*.code-workspace
