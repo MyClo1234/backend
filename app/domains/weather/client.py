@@ -1,4 +1,4 @@
-import requests
+import aiohttp
 from typing import Dict, Any, Optional
 from urllib.parse import unquote
 from app.core.config import Config
@@ -9,8 +9,8 @@ class KMAWeatherClient:
 
     BASE_URL = "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
 
-    def fetch_forecast(
-        self, base_date: str, base_time: str, nx: int, ny: int
+    async def fetch_forecast(
+        self, base_date: str, base_time: str, nx: int, ny: int, numOfRows: int
     ) -> Optional[Dict[str, Any]]:
         """
         기상청 API를 호출하여 예보 데이터를 가져옵니다.
@@ -32,7 +32,7 @@ class KMAWeatherClient:
         params = {
             "serviceKey": service_key,
             "pageNo": "1",
-            "numOfRows": "1000",  # 하루치 데이터 충분히 확보
+            "numOfRows": numOfRows,  # 하루치 데이터 커버
             "dataType": "JSON",
             "base_date": base_date,
             "base_time": base_time,
@@ -41,27 +41,17 @@ class KMAWeatherClient:
         }
 
         try:
-            response = requests.get(self.BASE_URL, params=params, timeout=10)
-            response.raise_for_status()
-
-            # 응답 컨텐츠 타입 확인 또는 JSON 파싱 시도
-            try:
-                data = response.json()
-                # 기상청 에러 응답 코드 확인 (정상: "00")
-                if "response" in data and "header" in data["response"]:
-                    result_code = data["response"]["header"]["resultCode"]
-                    if result_code != "00":
-                        print(
-                            f"KMA API Error Code: {result_code}, Msg: {data['response']['header']['resultMsg']}"
-                        )
-                return data
-            except ValueError:
-                # XML 등 JSON이 아닌 응답이 온 경우
-                print(
-                    f"KMA API Response Parse Error. Raw Body: {response.text[:200]}..."
-                )
-                return None
-
-        except requests.RequestException as e:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    self.BASE_URL,
+                    params=params,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as response:
+                    response.raise_for_status()
+                    return await response.json()
+        except aiohttp.ClientError as e:
             print(f"KMA API Connection Failed: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error: {e}")
             return None
