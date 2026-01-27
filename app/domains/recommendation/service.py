@@ -228,7 +228,7 @@ class OutfitRecommender:
         bottom_ids = sorted([b.get("id") for b in bottoms])
         return f"{hash(tuple(top_ids))}_{hash(tuple(bottom_ids))}_{count}"
 
-    def recommend_with_llm(
+    async def recommend_with_llm(
         self, tops: List[Dict], bottoms: List[Dict], count: int = 1
     ) -> List[Dict]:
         """
@@ -272,7 +272,7 @@ class OutfitRecommender:
 
         # LangGraph 워크플로우 호출
         try:
-            recommendations = recommend_outfits(
+            recommendations = await recommend_outfits(
                 tops=tops, bottoms=bottoms, count=count, use_llm=True
             )
 
@@ -345,7 +345,7 @@ class OutfitRecommender:
         candidates.sort(key=lambda x: x["score"], reverse=True)
         return candidates[:count]
 
-    def recommend_with_gemini(
+    async def recommend_with_gemini(
         self,
         tops: List[Dict],
         bottoms: List[Dict],
@@ -360,7 +360,7 @@ class OutfitRecommender:
 
         DEPRECATED: recommend_with_llm을 사용하세요.
         """
-        return self.recommend_with_llm(tops, bottoms, count)
+        return await self.recommend_with_llm(tops, bottoms, count)
 
     @staticmethod
     def _normalize_korea_lat_lon(lat: float, lon: float) -> Tuple[float, float, bool]:

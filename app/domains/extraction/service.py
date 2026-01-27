@@ -12,7 +12,7 @@ class AttributeExtractor:
     내부적으로 LangGraph 워크플로우를 사용하여 이미지에서 의류 속성을 추출합니다.
     """
 
-    def extract(
+    async def extract(
         self, image_bytes: bytes, retry_on_schema_fail: bool = True
     ) -> Dict[str, Any]:
         """
@@ -30,7 +30,7 @@ class AttributeExtractor:
         # 현재는 기존 워크플로우가 이미 신뢰도를 포함한 구조를 반환하므로 이를 활용합니다.
         # 다만, 가독성과 유지보수를 위해 향후 여기서 직접 호출로 단순화할 수 있습니다.
         logger.info("Extracting attributes with confidence scores...")
-        return extract_attributes(
+        return await extract_attributes(
             image_bytes, retry_on_schema_fail=retry_on_schema_fail
         )
 
