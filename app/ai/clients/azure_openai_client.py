@@ -4,8 +4,9 @@ Azure OpenAI API 클라이언트
 
 import base64
 import logging
+import asyncio
 from typing import Optional, List, Dict, Any
-from openai import AzureOpenAI
+from openai import AsyncAzureOpenAI
 from app.core.config import Config
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ class AzureOpenAIClient:
     def __init__(self):
         Config.check_api_key()
 
-        self.client = AzureOpenAI(
+        self.client = AsyncAzureOpenAI(
             api_key=Config.AZURE_OPENAI_API_KEY,
             api_version=Config.AZURE_OPENAI_API_VERSION,
             azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
@@ -29,7 +30,7 @@ class AzureOpenAIClient:
         """이미지를 base64로 인코딩"""
         return base64.b64encode(image_bytes).decode("utf-8")
 
-    def generate_content(
+    async def generate_content(
         self,
         prompt: str,
         images: Optional[List[bytes]] = None,
@@ -113,7 +114,7 @@ class AzureOpenAIClient:
             logger.error(f"Azure OpenAI API error: {str(e)}", exc_info=True)
             raise Exception(f"Azure OpenAI API error: {str(e)}")
 
-    def generate_with_vision(self, prompt: str, image_bytes: bytes, **kwargs) -> str:
+    async def generate_with_vision(self, prompt: str, image_bytes: bytes, **kwargs) -> str:
         """
         Vision API를 사용하여 이미지 분석
 
@@ -125,7 +126,7 @@ class AzureOpenAIClient:
         Returns:
             생성된 텍스트 응답
         """
-        return self.generate_content(prompt, image_bytes=image_bytes, **kwargs)
+        return await self.generate_content(prompt, image_bytes=image_bytes, **kwargs)
 
 
 # Singleton instance

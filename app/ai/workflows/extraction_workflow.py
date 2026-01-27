@@ -15,7 +15,7 @@ from app.utils.helpers import normalize
 logger = logging.getLogger(__name__)
 
 
-def extract_attributes(
+async def extract_attributes(
     image_bytes: bytes, retry_on_schema_fail: bool = True
 ) -> Dict[str, Any]:
     """
@@ -35,7 +35,7 @@ def extract_attributes(
     try:
         # 1. 1차 시도
         logger.info("Calling Azure OpenAI Vision API (Attempt 1)...")
-        raw_response = azure_openai_client.generate_with_vision(
+        raw_response = await azure_openai_client.generate_with_vision(
             prompt=USER_PROMPT,
             image_bytes=image_bytes,
             temperature=0.3,
@@ -59,7 +59,7 @@ def extract_attributes(
             if retry_on_schema_fail:
                 logger.info("Retrying with correction prompt...")
                 retry_prompt = build_retry_prompt(errors)
-                raw_response = azure_openai_client.generate_with_vision(
+                raw_response = await azure_openai_client.generate_with_vision(
                     prompt=retry_prompt,
                     image_bytes=image_bytes,
                     temperature=0.2,

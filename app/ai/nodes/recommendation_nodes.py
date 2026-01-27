@@ -3,6 +3,7 @@
 """
 
 import json
+import asyncio
 from typing import Dict, Any, List
 from app.ai.schemas.workflow_state import RecommendationState
 from app.ai.clients.azure_openai_client import azure_openai_client
@@ -139,7 +140,7 @@ def prepare_llm_input_node(state: RecommendationState) -> RecommendationState:
     return state
 
 
-def call_llm_node(state: RecommendationState) -> RecommendationState:
+async def call_llm_node(state: RecommendationState) -> RecommendationState:
     """LLM 호출 노드"""
     metadata = state.get("metadata", {})
     tops_summary = metadata.get("tops_summary", [])
@@ -166,7 +167,7 @@ def call_llm_node(state: RecommendationState) -> RecommendationState:
                 tops_summary=tops_summary, bottoms_summary=bottoms_summary, count=count
             )
 
-        response_text = azure_openai_client.generate_content(
+        response_text = await azure_openai_client.generate_content(
             prompt, temperature=0.7, max_tokens=1000
         )
 
