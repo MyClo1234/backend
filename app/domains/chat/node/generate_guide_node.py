@@ -3,7 +3,7 @@
 """
 
 import logging
-from app.ai.schemas.workflow_state import ChatState
+from app.domains.chat.states import ChatState
 from app.ai.clients.azure_openai_client import azure_openai_client
 from app.domains.chat.enums import NodeName
 

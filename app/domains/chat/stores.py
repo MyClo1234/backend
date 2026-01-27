@@ -1,7 +1,7 @@
 from typing import Optional
 
 from app.domains.chat.states import ChatState
-from app.infra import get_nosql_client
+from app.infra.clients import get_nosql_client
 
 from azure.cosmos import ContainerProxy
 
@@ -20,7 +20,9 @@ class ChatStateStore:
     async def get_state(self, session_id: int) -> Optional[ChatState]:
         """상태 조회"""
         try:
-            item = await self.container.read_item(item=str(session_id), partition_key=str(session_id))
+            item = await self.container.read_item(
+                item=str(session_id), partition_key=str(session_id)
+            )
             # id 필드 제거하고 ChatState로 변환
             item.pop("id", None)
             return ChatState(item)

@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 import logging
-from app.ai.schemas.workflow_state import ChatState
+from app.domains.chat.states import ChatState
 from app.ai.clients.nano_banana_client import NanoBananaClient
 from app.utils.blob_storage import get_blob_storage_service
 from app.domains.recommendation.model import TodaysPick

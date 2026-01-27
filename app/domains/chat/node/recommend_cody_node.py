@@ -1,5 +1,5 @@
 import logging
-from app.ai.schemas.workflow_state import ChatState
+from app.domains.chat.states import ChatState
 from app.llm.todays_pick_service import recommend_todays_pick_v2
 from app.domains.weather.service import weather_service
 
