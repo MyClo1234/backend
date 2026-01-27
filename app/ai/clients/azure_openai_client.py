@@ -92,7 +92,7 @@ class AzureOpenAIClient:
             logger.debug(
                 f"API params: temperature={api_params.get('temperature')}, max_tokens={api_params.get('max_tokens')}"
             )
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self.deployment_name, messages=messages, **api_params
             )
 
