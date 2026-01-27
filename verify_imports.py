@@ -23,7 +23,7 @@ try:
     from app.domains.outfit.model import OutfitLog, OutfitItem
 
     print("OutfitLog imported")
-    from app.domains.chat.model import ChatSession, ChatMessage
+    from app.domains.chat.models import ChatSession, ChatMessage
 
     print("ChatSession imported")
     from app.domains.weather.model import DailyWeather
