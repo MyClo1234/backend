@@ -142,6 +142,7 @@ def create_app() -> FastAPI:
                 "/api/wardrobe",
                 "/api/recommend",
                 "/api/generation",
+                "/api/chat",
             ]
 
             auth_excluded_paths = ["/api/auth/login", "/api/auth/signup", "/api/health"]
