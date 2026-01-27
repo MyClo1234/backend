@@ -127,43 +127,6 @@ class AzureOpenAIClient:
         """
         return self.generate_content(prompt, image_bytes=image_bytes, **kwargs)
 
-    def generate_image(self, prompt: str, **kwargs) -> str:
-        """
-        나노바나나를 사용하여 이미지 생성
-
-        Args:
-            prompt: 이미지 생성을 위한 프롬프트
-            **kwargs: 추가 파라미터 (size, quality 등)
-
-        Returns:
-            생성된 이미지의 URL (임시)
-        """
-        try:
-            logger.info(
-                f"나노바나나를 사용하여 이미지 생성 시작. Prompt: {prompt[:100]}..."
-            )
-
-            # 나노바나나(DALL-E 3)는 별도의 모델명이 필요할 수 있음
-            # Config에 DALL_E_DEPLOYMENT_NAME이 없다면 기본값 사용 시도
-            deployment = getattr(Config, "AZURE_OPENAI_DALLE_DEPLOYMENT", "dall-e-3")
-
-            response = self.client.images.generate(
-                model=deployment,
-                prompt=prompt,
-                n=1,
-                size=kwargs.get("size", "1024x1024"),
-                quality=kwargs.get("quality", "standard"),
-                style=kwargs.get("style", "vivid"),
-            )
-
-            image_url = response.data[0].url
-            logger.info("Image generation successful")
-            return image_url
-
-        except Exception as e:
-            logger.error(f"나노바나나 이미지 생성 도중 오류: {str(e)}", exc_info=True)
-            raise Exception(f"나노바나나 이미지 생성 도중 오류: {str(e)}")
-
 
 # Singleton instance
 azure_openai_client = AzureOpenAIClient()

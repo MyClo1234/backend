@@ -5,7 +5,7 @@ from app.domains.generation.schema import (
     OutfitGenerationRequest,
     OutfitGenerationResponse,
 )
-from app.ai.clients.azure_dalle_client import azure_dalle_client
+from app.ai.clients.nano_banana_client import NanoBananaClient
 from app.utils.blob_storage import get_blob_storage_service
 from app.domains.wardrobe.schema import WardrobeItemSchema
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class GenerationService:
     def __init__(self):
-        self.dalle_client = azure_dalle_client
+        self.nano_banana_client = NanoBananaClient()
         self.blob_service = get_blob_storage_service()
 
     def _construct_prompt(self, request: OutfitGenerationRequest) -> str:
@@ -99,7 +99,7 @@ class GenerationService:
         self, request: OutfitGenerationRequest, user_id: UUID
     ) -> str:
         """
-        Generate an outfit image and save it to Blob Storage.
+        Generate an outfit image using Nano Banana and save it to Blob Storage.
         Returns the permanent Blob URL.
         """
         try:
@@ -107,21 +107,14 @@ class GenerationService:
             prompt = self._construct_prompt(request)
             logger.info(f"Generated prompt: {prompt}")
 
-            # 2. Call DALL-E 3
-            # Note: client.generate_image is synchronous because OpenAI client is sync by default
-            # unless using AsyncAzureOpenAI. For now, we run it directly.
-            dalle_url = self.dalle_client.generate_image(prompt=prompt)
+            # 2. Call Nano Banana (Imagen 3)
+            # generate_image returns bytes directly
+            image_bytes = self.nano_banana_client.generate_image(prompt=prompt)
 
-            if not dalle_url:
-                raise Exception("Failed to get image URL from DALL-E")
+            if not image_bytes:
+                raise Exception("Failed to generate image bytes from Nano Banana")
 
-            # 3. Download Image
-            async with httpx.AsyncClient() as client:
-                response = await client.get(dalle_url)
-                response.raise_for_status()
-                image_bytes = response.content
-
-            # 4. Upload to Blob Storage
+            # 3. Upload to Blob Storage
             # We use a distinct filename prefix or rely on the blob service's unique naming
             result = self.blob_service.upload_image(
                 image_bytes=image_bytes,

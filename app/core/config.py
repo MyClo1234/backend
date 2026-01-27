@@ -15,16 +15,6 @@ class Config:
     AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
     AZURE_OPENAI_MODEL_NAME = os.getenv("AZURE_OPENAI_MODEL_NAME", "gpt-4o")
 
-    # Azure DALL-E Configuration
-    AZURE_DALLE_API_KEY = os.getenv("AZURE_DALLE_API_KEY", "")
-    AZURE_DALLE_ENDPOINT = os.getenv("AZURE_DALLE_ENDPOINT", "")
-    AZURE_DALLE_DEPLOYMENT_NAME = os.getenv(
-        "AZURE_DALLE_DEPLOYMENT_NAME", "codify-dall-e-3"
-    )
-    AZURE_DALLE_MODEL_VERSION = os.getenv(
-        "AZURE_DALLE_MODEL_VERSION", "2024-04-01-preview"
-    )
-
     # Google Cloud Configuration
     GOOGLE_APPLICATION_CREDENTIALS = os.getenv(
         "GOOGLE_APPLICATION_CREDENTIALS", "google_credentials.json"
@@ -115,17 +105,6 @@ class Config:
             print("Warning: KMA API key environment variable is not set.")
             print(
                 "       Please set KMA_API_KEY (or KMA_SERVICE_KEY) in .env/local.settings.json or environment variables."
-            )
-
-        if not Config.AZURE_DALLE_API_KEY:
-            print("Warning: AZURE_DALLE_API_KEY environment variable is not set.")
-            print(
-                "       Please set AZURE_DALLE_API_KEY in .env file or environment variables."
-            )
-        if not Config.AZURE_DALLE_ENDPOINT:
-            print("Warning: AZURE_DALLE_ENDPOINT environment variable is not set.")
-            print(
-                "       Please set AZURE_DALLE_ENDPOINT in .env file or environment variables."
             )
 
         if not os.path.exists(Config.GOOGLE_APPLICATION_CREDENTIALS):
