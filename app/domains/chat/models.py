@@ -33,7 +33,7 @@ class ChatMessage(Base):
     sender = Column(String, nullable=False)  # 'USER' or 'AGENT'
     content = Column(Text, nullable=False)  # 메시지 내용
     node_name = Column(String, nullable=True)  # 어떤 노드에서 생성된 메시지인지 (AGENT인 경우)
-    metadata = Column(JSONB, nullable=True)  # 노드별 메타데이터 (예: intent, tpo 등)
+    message_metadata = Column(JSONB, nullable=True)  # 노드별 메타데이터 (예: intent, tpo 등)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )  # 메시지 생성 시간

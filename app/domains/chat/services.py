@@ -110,7 +110,7 @@ class ChatService:
             sender="USER",
             content=content,
             node_name=None,
-            metadata=None,
+            message_metadata=None,
         )
         db.add(message)
         db.commit()
@@ -154,7 +154,7 @@ class ChatService:
             sender="AGENT",
             content=content,  # 노드가 생성한 response
             node_name=node_name,
-            metadata=metadata if metadata else None,
+            message_metadata=metadata if metadata else None,
         )
         db.add(message)
         db.commit()
