@@ -83,10 +83,11 @@ def recommend_outfits(
     initial_state: RecommendationState = {
         "tops": tops,
         "bottoms": bottoms,
+        "outers": [],
         "candidates": [],
         "llm_recommendations": None,
         "final_outfits": [],
-        "metadata": {"user_id": str(kwargs.get("user_id", "unknown"))},
+        "metadata": {},
         "user_request": user_request,
         "weather_info": weather_info,
         "count": count,
