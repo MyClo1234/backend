@@ -94,6 +94,11 @@ def prepare_llm_input_node(state: RecommendationState) -> RecommendationState:
                         ),
                         2,
                     ),
+                    "material": (
+                        (attrs.get("material") or {}).get("guess", "unknown")
+                        if isinstance(attrs, dict)
+                        else "unknown"
+                    ),
                 }
             )
 
@@ -125,6 +130,11 @@ def prepare_llm_input_node(state: RecommendationState) -> RecommendationState:
                             else 0.5
                         ),
                         2,
+                    ),
+                    "material": (
+                        (attrs.get("material") or {}).get("guess", "unknown")
+                        if isinstance(attrs, dict)
+                        else "unknown"
                     ),
                 }
             )
