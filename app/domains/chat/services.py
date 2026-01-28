@@ -7,23 +7,32 @@ from sqlalchemy.orm import Session
 from app.domains.chat.states import ChatState
 from app.domains.chat.workflows import get_chat_workflow
 from app.domains.chat.schemas import ChatRequest
+from langgraph.graph.state import CompiledStateGraph
 from app.domains.chat.models import ChatSession, ChatMessage
 from app.domains.user.model import User
 from app.domains.chat.stores import get_chat_state_store
+from app.utils.langsmith_helper import get_langsmith_config
 
 from app.database import get_db
 
 
 class ChatService:
+    def __init__(self, workflow: CompiledStateGraph, db: Session):
+        self.workflow = workflow
+        # LangSmith 기본 설정 (공통 부분만)
+        self._base_langsmith_config = get_langsmith_config(
+            project_name="My First App",
+            tags=["chat", "workflow"],
+        )
+        self.db = db
+
     async def send_message(
         self,
         request: ChatRequest,
         current_user: User,
-        workflow,
-        db: Session = Depends(get_db),
     ) -> ChatState:
         # 진행중인 채팅 세션이 있는지 확인
-        active_session = self._get_active_chat_session(db, current_user.id)
+        active_session = self._get_active_chat_session(current_user.id)
 
         # 기존 채팅 세션이 있으면
         if active_session:
@@ -32,9 +41,7 @@ class ChatService:
             if state is None:
                 # Cosmos에 상태가 없으면 새로 생성
                 state = self._create_initial_state(request, current_user)
-                await get_chat_state_store().create_state(
-                    session_id=session_id, state=state
-                )
+                await get_chat_state_store().create_state(session_id, state)
         else:
             # 기존 채팅 세션이 없으면
             # 새 상태 정의
@@ -45,39 +52,49 @@ class ChatService:
                 session_summary=None,
                 finished_at=None,
             )
-            db.add(new_session)
-            db.commit()  # session_id 자동 생성됨
+            self.db.add(new_session)
+            self.db.commit()  # session_id 자동 생성됨
             session_id = new_session.session_id
             # 상태 저장
-            await get_chat_state_store().create_state(
-                session_id=session_id, state=state
-            )
+            await get_chat_state_store().create_state(session_id, state)
 
         # 사용자 메시지 저장 (PostgreSQL)
-        self._save_user_message(db, session_id, request.query)
+        self._save_user_message(self.db, session_id, request.query)
+
+        # LangSmith tracing 설정 (동적 값 추가)
+        langsmith_config = {
+            **self._base_langsmith_config,
+            "configurable": {
+                **self._base_langsmith_config.get("configurable", {}),
+                "thread_id": f"session-{session_id}",
+            },
+            "metadata": {
+                "session_id": session_id,
+                "user_id": str(current_user.id),
+                "query": request.query,
+            },
+        }
 
         # workflow를 실행할 때 마다 State를 업데이트하고 메시지 저장
         # astream은 {node_name: state} 형태의 딕셔너리를 yield
         final_state = state
-        async for event_dict in workflow.astream(state):
+        async for event_dict in self.workflow.astream(state, config=langsmith_config):
             # event_dict는 {node_name: state} 형태
             for node_name, node_state in event_dict.items():
                 final_state = node_state
                 final_state["current_node"] = node_name
 
                 # 노드별 응답 메시지 저장 (PostgreSQL)
-                self._save_agent_message(db, session_id, final_state, node_name)
+                self._save_agent_message(self.db, session_id, final_state, node_name)
 
                 # 상태 업데이트 (Cosmos DB - messages 제외, 워크플로우 상태만)
                 await get_chat_state_store().update_state(session_id, final_state)
 
         return final_state
 
-    def _get_active_chat_session(
-        self, db: Session, user_id: UUID
-    ) -> Optional[ChatSession]:
+    def _get_active_chat_session(self, user_id: UUID) -> Optional[ChatSession]:
         return (
-            db.query(ChatSession)
+            self.db.query(ChatSession)
             .filter(
                 ChatSession.user_id == user_id,
                 ChatSession.finished_at.is_(None),
@@ -160,8 +177,8 @@ class ChatService:
         db.commit()
 
 
-chat_service = ChatService()
-
-
-async def get_chat_service() -> ChatService:
-    return chat_service
+async def get_chat_service(
+    workflow: CompiledStateGraph = Depends(get_chat_workflow),
+    db: Session = Depends(get_db),
+) -> ChatService:
+    return ChatService(workflow=workflow, db=db)
