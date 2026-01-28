@@ -23,7 +23,7 @@ async def analyze_intent_node(state: ChatState) -> ChatState:
     
     결과를 아래 JSON 형식으로 반환하세요:
     {{
-        "intent": "${Intent.RECOMMEND_CODY.value}" 또는 "${Intent.GENERATE_GUIDE.value}",
+        "intent": "{Intent.RECOMMEND_CODY.value}" 또는 "{Intent.GENERATE_GUIDE.value}",
         "tpo": "발견된 TPO 정보 (결혼식, 데이트, 운동 등, 없으면 None)",
         "special_request": "색상, 소재, 스타일 등에 대한 구체적인 요청 사항 (없으면 null)",
         "reason": "판단 근거",
@@ -45,13 +45,10 @@ async def analyze_intent_node(state: ChatState) -> ChatState:
 
     state["context"] = {
         **state["context"],
-        "intent": parsed.get("intent", Intent.GENERATE_GUIDE.value),
+        "intent": parsed.get("intent", Intent.GENERATE_GUIDE.value).strip().upper(),
         "tpo": parsed.get("tpo", None),
         "special_request": parsed.get("special_request"),
         "intent_reason": parsed.get("reason"),  # LLM이 생성한 판단 근거 저장
-        "is_recommendation_request": (
-            parsed.get("intent") == Intent.RECOMMEND_CODY.value
-        ),
     }
 
     return state
