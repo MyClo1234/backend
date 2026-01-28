@@ -29,7 +29,6 @@ def fetch_wardrobe_items(
 
     # 모든 아이템 조회
     all_items = db.query(ClosetItem).filter(ClosetItem.user_id == str(user_id)).all()
-
     tops = []
     bottoms = []
 
