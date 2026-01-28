@@ -214,7 +214,9 @@ class NanoBananaClient:
             m_shape = (body_shape or "average").lower()
 
             prompt = (
-                f"A high-quality fashion studio shot of a realistic {m_shape} {m_gender} mannequin wearing {outfit_desc}. "
+                f"A high-quality fashion studio full body shot of a realistic {m_shape} {m_gender} mannequin wearing {outfit_desc}, showing the entire body from head to toe, including feet. "
+                "The outfit is rendered with perfect garment structure, no distortion, realistic fabric texture, and accurate details. "
+                "The mannequin is anatomically correct, with no body distortion, perfect proportions, and features a symmetric body. "
                 f"The mannequin has a {m_shape} build as seen in professional fashion displays. "
                 "The mannequin is standing in a natural pose against a clean, minimal white background. "
                 "Soft studio lighting, commercial fashion photography style, 8k resolution, professional look, sharp focus."
