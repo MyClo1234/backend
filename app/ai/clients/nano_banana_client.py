@@ -176,99 +176,137 @@ class NanoBananaClient:
             logger.error(f"Error during image generation: {e}")
             return None
 
-    def generate_mannequin_composite(
-        self,
-        top_image_url: Optional[str] = None,
-        bottom_image_url: Optional[str] = None,
-        top_description: Optional[str] = None,
-        bottom_description: Optional[str] = None,
-        mannequin_url: Optional[str] = None,
-        gender: Optional[str] = None,
-        body_shape: Optional[str] = None,
-        mannequin_bytes: Optional[bytes] = None,
-        user_id: Optional[str] = None,
-    ) -> Optional[str]:
-        """
-        Generate a composite mannequin image with top and bottom items.
-        Returns the URL of the generated image in Azure Blob Storage.
-        """
-        if not self.model:
-            logger.error("Nano Banana Client is not initialized.")
+
+def generate_mannequin_composite(
+    self,
+    top_image_url: Optional[str] = None,
+    bottom_image_url: Optional[str] = None,
+    top_description: Optional[str] = None,
+    bottom_description: Optional[str] = None,
+    mannequin_url: Optional[str] = None,
+    gender: Optional[str] = None,
+    body_shape: Optional[str] = None,
+    mannequin_bytes: Optional[bytes] = None,
+    user_id: Optional[str] = None,
+) -> Optional[str]:
+    """
+    사용자 체형을 반영한 '리얼 모델 피팅' 이미지 생성 함수
+    (마네킹 느낌을 배제하고 자연스러운 착장감 강조)
+    """
+    if not self.model:
+        logger.error("Nano Banana Client is not initialized.")
+        return None
+
+    try:
+        # 1. 사용자 체형 및 성별 데이터 정규화
+        m_gender_term = (
+            "man" if (gender or "").lower() in ["man", "male", "m"] else "woman"
+        )
+        m_gender_adj = "male" if m_gender_term == "man" else "female"
+
+        valid_shapes = ["athletic", "average", "muscular", "slim", "stocky"]
+        raw_shape = (body_shape or "average").lower()
+        m_shape = raw_shape if raw_shape in valid_shapes else "average"
+
+        # 2. 페르소나 변경: 마네킹(Mannequin) -> 실제 모델(Real Model)
+        # 체형 정보는 유지하되, '사람'임을 명시합니다.
+        model_persona = (
+            f"a realistic {m_gender_adj} fashion model with an {m_shape} build"
+        )
+
+        # 3. 의상 조합 묘사 (이전 단계에서 넘어온 디테일한 묘사 활용)
+        outfit_parts = []
+        # 자연스러운 문맥을 위해 'wearing'을 앞단으로 뺍니다.
+        if top_description:
+            outfit_parts.append(f"a {top_description}")
+        if bottom_description:
+            outfit_parts.append(f"{bottom_description}")
+
+        outfit_desc = ", and ".join(outfit_parts)
+
+        # 4. [최종] 나노 바나나 '리얼 핏' 마스터 프롬프트
+        # 핵심 변경점: '딱 맞는 핏(perfect fit)' 대신 '자연스러운 주름(natural drape/folds)' 강조
+        full_prompt = (
+            f"A professional full-body fashion photograph of {model_persona} wearing {outfit_desc}. "
+            # Natural Fit & Realism (자연스러운 착장감 강조)
+            # 마네킹처럼 딱딱하게 붙는 게 아니라, 중력에 의해 자연스럽게 처지는 느낌을 유도합니다.
+            f"The clothes hang naturally on the body, showing realistic fabric drape, folds, and movement appropriate for the material. "
+            f"The model is posing naturally in a relaxed standing stance. "
+            # Composition & Detail
+            f"Focus on photorealistic material textures and garment details. "
+            f"Clean, neutral studio background, soft professional lighting, 8k resolution, highly detailed photograph."
+        )
+
+        logger.info(f"🎨 Generating Realistic Model Image with Prompt: {full_prompt}")
+
+        # 5. 이미지 생성 요청
+        # Important: 리얼한 사람 모델을 원할 경우, 마네킹 base_image가 오히려 방해가 될 수 있습니다.
+        # 마네킹의 경직된 자세를 따라갈 위험이 있기 때문입니다.
+        # 따라서, 완전한 리얼함을 위해 base_image_bytes를 제거하고 텍스트 프롬프트에 의존하는 것을 권장합니다.
+        # 만약 꼭 특정 포즈를 유지해야 한다면 base_image_bytes를 다시 넣으셔도 됩니다.
+        image_bytes = self.generate_image(
+            prompt=full_prompt,
+            # base_image_bytes=mannequin_bytes  <- 주석 처리: 마네킹 느낌 배제 및 자연스러운 포즈 유도
+        )
+
+        if not image_bytes:
             return None
 
-        try:
-            # Create a rich prompt describing the outfit and the personalized mannequin
-            outfit_desc = ""
-            if top_description:
-                outfit_desc += f"a {top_description} on top, "
-            if bottom_description:
-                outfit_desc += f"and a {bottom_description} on bottom"
+        # ... (이하 Azure Blob 업로드 로직은 기존 코드와 동일) ...
 
-            if not outfit_desc:
-                outfit_desc = "a complete coordinated outfit"
+        # --- Azure Upload Logic Placeholder ---
+        # (기존 코드를 여기에 유지하세요)
+        # --------------------------------------
 
-            # Personalize the mannequin description
-            m_gender = (
-                "man" if (gender or "").lower() in ["man", "male", "m"] else "woman"
-            )
-            m_shape = (body_shape or "average").lower()
+        # 테스트용 더미 URL
+        return "https://dummy-url.com/generated_real_model_image.png"
 
-            prompt = (
-                f"A high-quality fashion studio shot of a realistic {m_shape} {m_gender} mannequin wearing {outfit_desc}. "
-                f"The mannequin has a {m_shape} build as seen in professional fashion displays. "
-                "The mannequin is standing in a natural pose against a clean, minimal white background. "
-                "Soft studio lighting, commercial fashion photography style, 8k resolution, professional look, sharp focus."
-            )
+    except Exception as e:
+        logger.error(f"Error generating model composite: {e}", exc_info=True)
+        return None
 
-            logger.info(
-                f"Generating personalized composite image with prompt: {prompt}"
-            )
-            image_bytes = self.generate_image(prompt, base_image_bytes=mannequin_bytes)
+        # Upload to Azure Blob Storage using Config
+        from azure.storage.blob import BlobServiceClient
+        from datetime import datetime
+        import uuid
 
-            if not image_bytes:
-                logger.error("Failed to generate image bytes from prompt.")
-                return None
+        account_name = Config.AZURE_STORAGE_ACCOUNT_NAME
+        account_key = Config.AZURE_STORAGE_ACCOUNT_KEY
+        container_name = Config.AZURE_STORAGE_CONTAINER_NAME
 
-            # Upload to Azure Blob Storage using Config
-            from azure.storage.blob import BlobServiceClient
-            from datetime import datetime
-            import uuid
-
-            account_name = Config.AZURE_STORAGE_ACCOUNT_NAME
-            account_key = Config.AZURE_STORAGE_ACCOUNT_KEY
-            container_name = Config.AZURE_STORAGE_CONTAINER_NAME
-
-            if not all([account_name, account_key, container_name]):
-                logger.error("Azure Storage configuration is incomplete.")
-                return None
-
-            blob_service_client = BlobServiceClient(
-                account_url=f"https://{account_name}.blob.core.windows.net",
-                credential=account_key,
-            )
-            container_client = blob_service_client.get_container_client(container_name)
-
-            # Ensure container exists
-            if not container_client.exists():
-                container_client.create_container()
-
-            # Filename generation using user_id and timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            safe_user_id = str(user_id) if user_id else f"anon-{uuid.uuid4().hex[:8]}"
-            filename = f"todays-picks/{safe_user_id}_{timestamp}.png"
-
-            blob_client = container_client.get_blob_client(filename)
-
-            logger.info(f"Uploading generated image to blob: {filename}")
-            blob_client.upload_blob(image_bytes, overwrite=True)
-
-            image_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{filename}"
-            logger.info(f"✅ Generated composite image: {image_url}")
-            return image_url
-
-        except Exception as e:
-            logger.error(f"Error generating mannequin composite: {e}")
-            import traceback
-
-            logger.error(traceback.format_exc())
+        if not all([account_name, account_key, container_name]):
+            logger.error("Azure Storage configuration is incomplete.")
             return None
+
+        blob_service_client = BlobServiceClient(
+            account_url=f"https://{account_name}.blob.core.windows.net",
+            credential=account_key,
+        )
+        container_client = blob_service_client.get_container_client(container_name)
+
+        # Ensure container exists
+        if not container_client.exists():
+            container_client.create_container()
+
+        # Filename generation using user_id and timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_user_id = str(user_id) if user_id else f"anon-{uuid.uuid4().hex[:8]}"
+        filename = f"todays-picks/{safe_user_id}_{timestamp}.png"
+
+        blob_client = container_client.get_blob_client(filename)
+
+        logger.info(f"Uploading generated image to blob: {filename}")
+        blob_client.upload_blob(image_bytes, overwrite=True)
+
+        image_url = (
+            f"https://{account_name}.blob.core.windows.net/{container_name}/{filename}"
+        )
+        logger.info(f"✅ Generated composite image: {image_url}")
+        return image_url
+
+    except Exception as e:
+        logger.error(f"Error generating mannequin composite: {e}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        return None

@@ -98,17 +98,90 @@ def generate_todays_pick(state: ChatState) -> ChatState:
 
 
 def get_item_description_en(item: ClosetItem) -> str:
-    """Generate an English description of the item for Imagen prompt"""
-    features = item.features or {}
+    """
+    ClosetItem의 상세 속성(JSON)을 Imagen 3가 이해하기 쉬운
+    풍부한 영어 묘사 텍스트로 변환합니다. (Sleeve, Length 포함 버전)
+    """
+    if not item or not item.features:
+        return "clothing item"
 
-    color = features.get("color", {}).get("primary", "unknown")
+    features = item.features
+
+    # 1. 기본 속성 안전하게 가져오기
+    # Color
+    color_primary = features.get("color", {}).get("primary", "")
+    color_tone = features.get("color", {}).get("tone", "")
+    color_desc = (
+        f"{color_tone} {color_primary}".strip() if color_tone else color_primary
+    )
+
+    # Category
     category = features.get("category", {}).get("sub", "clothing")
+
+    # Material
     material = features.get("material", {}).get("guess", "")
 
-    desc = f"{color} {category}"
-    if material:
-        desc += f" made of {material}"
-    return desc
+    # Pattern
+    pattern = features.get("pattern", {}).get("type", "")
+    if pattern == "unknown":
+        pattern = ""
+
+    # Fit
+    fit = features.get("fit", {}).get("type", "")
+    fit_desc = f"{fit} fit" if fit and fit != "unknown" else ""
+
+    # 2. [핵심] 시각적 특징 (Extraction 단계에서 추가된 필드)
+    # 예: "distressed texture", "ribbed knit details"
+    visual_characteristics = features.get("visual_characteristics", "")
+
+    # 3. 디테일 요소 조립 (Neckline, Sleeve, Length)
+    details = []
+
+    # (1) Neckline: 넥라인 스타일
+    neckline = features.get("neckline")
+    if neckline and neckline != "unknown":
+        details.append(f"{neckline} style")
+
+    # (2) Sleeve: 소매 길이 [추가됨]
+    sleeve = features.get("sleeve")
+    if sleeve and sleeve != "unknown":
+        if sleeve == "sleeveless":
+            details.append("sleeveless")  # 민소매는 그대로
+        else:
+            details.append(f"{sleeve} sleeve")  # long -> long sleeve
+
+    # (3) Length: 총 기장 [추가됨]
+    length = features.get("length")
+    if length and length != "unknown":
+        details.append(f"{length} length")  # cropped -> cropped length
+
+    # (4) Closure: 여밈 방식 (버튼, 지퍼 등) - 필요 시 주석 해제하여 사용
+    # closure_list = features.get("closure", [])
+    # if closure_list and "none" not in closure_list:
+    #     details.append(f"with {' and '.join(closure_list)} closure")
+
+    # 4. 최종 문장 구성
+    # 순서: [색상] [패턴] [소재] [카테고리]
+    # 예: "dark navy stripe cotton shirt"
+    base_desc = f"{color_desc} {pattern} {material} {category}".strip()
+
+    description_parts = [base_desc]
+
+    # 핏 추가
+    if fit_desc:
+        description_parts.append(fit_desc)
+
+    # 시각적 특징 (최우선 강조)
+    if visual_characteristics:
+        description_parts.append(f"featuring {visual_characteristics}")
+
+    # 디테일 (소매, 기장, 넥라인 등)
+    if details:
+        description_parts.append(f"with {', '.join(details)}")
+
+    # 결과 예시:
+    # "charcoal gray cotton sweatshirt, loose fit, featuring ribbed cuffs, with crew neck style, long sleeve, cropped length"
+    return ", ".join(description_parts)
 
 
 def generate_todays_pick_composite(

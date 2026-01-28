@@ -24,7 +24,7 @@ Return JSON array with {count} object(s):
   "top_id": "string",
   "bottom_id": "string",
   "score": 0.0-1.0,
-  "reasoning": "한국어 100자 이내",
+  "reasoning": "한국어 100자 이내. 날씨 적합성뿐만 아니라, '소재의 텍스처 대비(예: 거친 데님과 부드러운 니트)'나 '색감의 밸런스'를 구체적으로 언급할 것.",
   "style_description": "한국어 50자 이내"
 }}
 

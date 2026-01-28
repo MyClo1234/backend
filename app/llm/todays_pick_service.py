@@ -34,10 +34,13 @@ def fetch_wardrobe_items(
     bottoms = []
 
     for item in all_items:
-        if not item.features:
-            continue
-
-        category_main = item.features.get("category", {}).get("main", "")
+        # 1) features.category.main 사용, 없으면 2) DB 컬럼 item.category 사용 (TOP/BOTTOM)
+        category_main = ""
+        if item.features and isinstance(item.features.get("category"), dict):
+            category_main = item.features.get("category", {}).get("main") or ""
+        if not (category_main and str(category_main).strip()):
+            category_main = item.category or ""
+        category_main = str(category_main).strip().lower()
 
         if category_main == "top":
             tops.append(item)
