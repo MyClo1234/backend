@@ -19,7 +19,7 @@ from app.domains.user.model import User  # noqa
 from app.domains.wardrobe.model import ClosetItem  # noqa
 from app.domains.recommendation.model import TodaysPick  # noqa
 from app.domains.weather.model import DailyWeather  # noqa
-from app.domains.chat.model import ChatSession, ChatMessage  # noqa
+from app.domains.chat.models import ChatSession, ChatMessage  # noqa
 from app.domains.outfit.model import OutfitLog  # noqa
 
 # this is the Alembic Config object, which provides

@@ -5,7 +5,7 @@ from app.database import Base, engine
 from app.domains.user.model import User
 from app.domains.wardrobe.model import ClosetItem
 from app.domains.outfit.model import OutfitLog, OutfitItem
-from app.domains.chat.model import ChatSession, ChatMessage
+from app.domains.chat.models import ChatSession, ChatMessage
 from app.domains.weather.model import DailyWeather
 from app.domains.recommendation.model import TodaysPick
 

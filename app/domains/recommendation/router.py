@@ -93,8 +93,10 @@ def get_outfit_score(top_id: str = Query(...), bottom_id: str = Query(...)):
         raise handle_route_exception(e)
 
 
+# deprecated
 @recommendation_router.get("/recommend/outfit", response_model=RecommendationResponse)
-def recommend_outfit(
+# deprecated
+async def recommend_outfit(
     count: int = Query(1, ge=1),
     season: Optional[str] = Query(None),
     formality: Optional[float] = Query(None),
@@ -191,8 +193,8 @@ def recommend_outfit(
             try:
                 # Modifying this call to pass outers.
                 # Note: recommender.recommend_with_llm needs to be updated too.
-                recommendations = recommender.recommend_with_llm(
-                    tops, bottoms, count, outers=outers
+                recommendations = await recommender.recommend_with_llm(
+                    tops, bottoms, count
                 )
                 if recommendations:
                     return create_success_response(

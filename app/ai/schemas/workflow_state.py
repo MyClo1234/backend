@@ -30,14 +30,3 @@ class RecommendationState(TypedDict):
     user_request: Optional[str]
     weather_info: Optional[Dict[str, Any]]
     count: int
-
-
-class ChatState(TypedDict):
-    """AI 채팅 워크플로우 상태 (향후 사용)"""
-
-    messages: List[Dict[str, Any]]
-    user_query: str
-    context: Dict[str, Any]
-    response: Optional[str]
-    recommendations: Optional[List[Dict[str, Any]]]
-    todays_pick: Optional[Dict[str, Any]]

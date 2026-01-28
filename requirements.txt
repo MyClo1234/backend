@@ -21,7 +21,11 @@ anyio==4.12.1
 attrs==25.4.0
     # via aiohttp
 azure-core==1.38.0
-    # via azure-storage-blob
+    # via
+    #   azure-cosmos
+    #   azure-storage-blob
+azure-cosmos==4.7.0
+    # via backend (pyproject.toml)
 azure-functions==1.24.0
     # via backend (pyproject.toml)
 azure-storage-blob==12.28.0
@@ -293,6 +297,7 @@ typing-extensions==4.15.0
     #   alembic
     #   anyio
     #   azure-core
+    #   azure-cosmos
     #   azure-storage-blob
     #   fastapi
     #   google-cloud-aiplatform

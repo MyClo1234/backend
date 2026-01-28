@@ -50,7 +50,7 @@ from app.domains.user import model as user_model
 from app.domains.user.model import User
 from app.domains.wardrobe.model import ClosetItem
 from app.domains.outfit.model import OutfitLog, OutfitItem
-from app.domains.chat.model import ChatSession, ChatMessage
+from app.domains.chat.models import ChatSession, ChatMessage
 from app.domains.weather.model import DailyWeather
 from app.domains.recommendation.model import TodaysPick
 from app.domains.auth.router import router as auth_router
@@ -96,7 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(recommendation_router, prefix="/api", tags=["Recommendation"])
     app.include_router(generation_router, prefix="/api", tags=["Generation"])
 
-    from app.domains.chat.router import chat_router
+    from app.domains.chat.routers import chat_router
 
     app.include_router(chat_router, prefix="/api", tags=["Chat"])
 
@@ -142,6 +142,7 @@ def create_app() -> FastAPI:
                 "/api/wardrobe",
                 "/api/recommend",
                 "/api/generation",
+                "/api/chat",
             ]
 
             auth_excluded_paths = ["/api/auth/login", "/api/auth/signup", "/api/health"]

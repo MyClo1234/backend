@@ -53,9 +53,9 @@ async def extract(
         )
         logger.info("File validation passed")
 
-        # Sync extraction call
+        # Async extraction call
         logger.info("Starting attribute extraction...")
-        attributes = extractor.extract(contents)
+        attributes = await extractor.extract(contents)
         category_main = (
             attributes.get("category", {}).get("main", "N/A")
             if isinstance(attributes.get("category"), dict)
