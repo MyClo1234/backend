@@ -22,7 +22,7 @@ venv.bak/
 
 # IDE
 .idea/
-.vscode/
+
 *.swp
 *.swo
 *~
@@ -46,3 +46,25 @@ azure_config.json
 *.tmp
 *.temp
 .cache/
+
+.python_packages
+
+# Workspace files
+*.code-workspace
+
+# Closet for test (dummy data for test)
+closet/
+
+# Sisyphus files
+.sisyphus/
+
+# Ruff cache
+.ruff_cache/
+# Azurite Emulator
+__azurite_db*__.json
+__blobstorage__
+__queuestorage__
+__tablestorage__
+AzuriteConfig
+google_credentials.json
+service_account.json

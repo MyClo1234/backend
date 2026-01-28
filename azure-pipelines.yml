@@ -1,36 +1,164 @@
 trigger:
 - main
 - dev
+- test/*
 
 pool:
   name: 'codify-self-host-ci-cd'
 
 steps:
-  # 1. 배포 파일 압축
+  # 1) Dependencies install (PEP 668 회피) + artifact용 .python_packages 만들기
+  - script: |
+      set -euo pipefail
+
+      echo "Python version:"
+      python3 --version
+
+      # 1. Install uv
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      source "$HOME/.cargo/env" || export PATH="$HOME/.local/bin:$PATH"
+
+      # 2. Setup venv & clean target
+      uv venv .venv
+      rm -rf .python_packages
+      mkdir -p .python_packages/lib/site-packages
+
+      # 3. Install dependencies with uv (for artifact)
+      uv pip install -r requirements.txt --target ".python_packages/lib/site-packages"
+
+      # 4. Install dependencies for Testing (into venv)
+      source .venv/bin/activate
+      uv pip install -r requirements.txt
+      uv pip install -r requirements-dev.txt
+
+      echo "Installed packages count:"
+      find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | wc -l
+
+      echo "Sample entries:"
+      find .python_packages/lib/site-packages -maxdepth 1 -mindepth 1 -print | sed -n '1,20p'
+    displayName: "Install dependencies with uv"
+
+  # 2) zip 전에 필수 파일 존재 체크
+  - script: |
+      set -euo pipefail
+      test -f host.json
+      test -f function_app.py
+      test -f requirements.txt
+      test -d .python_packages/lib/site-packages
+      echo "OK: host.json/function_app.py/requirements.txt/.python_packages exist"
+    displayName: "Verify workspace before zip"
+
+  # 3) zip 만들기 (repo 루트 기준)
   - task: ArchiveFiles@2
-    displayName: "Archive files"
+    displayName: "Archive function app"
     inputs:
       rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
       includeRootFolder: false
       archiveType: 'zip'
-      archiveFile: '$(System.DefaultWorkingDirectory)/build.zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
       replaceExistingArchive: true
 
-  # 2. 정석 DNS 및 인증 설정을 통한 배포
+  # 4) zip 안에 실제 포함됐는지 확인
   - script: |
-      # 172.16.0.6으로 연결되는 정석 SCM 주소입니다.
-      DEPLOY_URL="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net/api/zipdeploy"
-      
-      echo "Starting deployment to Private Endpoint (172.16.0.6)..."
-      
-      # -u 옵션에 $USER:$PASS 환경 변수를 사용하여 특수문자 변형을 방지합니다.
-      curl -f -v -u "$USER:$PASS" \
-      -H "Content-Type: application/zip" \
-      --data-binary @"$(System.DefaultWorkingDirectory)/build.zip" \
-      "$DEPLOY_URL"
-    displayName: "Deploy to Azure Functions (Final Success)"
+      set -euo pipefail
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" \
+        | grep -E "host.json|function_app.py|requirements.txt|\.python_packages" \
+        | sed -n '1,120p'
+    displayName: "Verify zip contents"
+
+  # 4-1) host.json / function_app.py 가 zip "루트"에 있는지 확인
+  - script: |
+      set -euo pipefail
+
+      echo "== Check host.json path (must be root) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "host.json$" || true
+
+      echo "== Check function_app.py path (must be root) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" | grep -E "function_app.py$" || true
+
+      echo "== Root-level entries (no folders) =="
+      unzip -l "$(Build.ArtifactStagingDirectory)/build.zip" \
+        | awk '{print $4}' \
+        | grep -v '^$' \
+        | grep -v '/.*' \
+        | sort \
+        | sed -n '1,200p'
+    displayName: "Verify zip root paths (host.json/function_app.py)"
+
+  # 5) OneDeploy로 배포 + deploymentId 받기 + 완료될 때까지 polling
+  - script: |
+      set -euo pipefail
+
+      DEPLOY_BASE="https://codify-functions-backend-gzaydqgch0ccbdfe.scm.koreacentral-01.azurewebsites.net"
+      DEPLOY_URL="${DEPLOY_BASE}/api/publish?type=zip"
+      echo "Deploy to: $DEPLOY_URL"
+
+      curl_retry() {
+        local retries=$1
+        shift
+
+        local count=0
+        until curl "$@"; do
+          exit=$?
+          wait=$((2 ** count))
+          count=$((count + 1))
+          if [ $count -lt $retries ]; then
+            echo "Retry $count/$retries exited $exit, retrying in $wait seconds..."
+            sleep $wait
+          else
+            echo "Retry $count/$retries exited $exit, no more retries left."
+            return $exit
+          fi
+        done
+        return 0
+      }
+
+      # (1) zip 업로드: 202 Accepted + deploymentId(body)가 내려옴
+      DEPLOYMENT_ID=$(
+        curl_retry 5 -f -sS -u "${USER}:${PASS}" \
+          --retry 5 \
+          --retry-delay 5 \
+          --retry-connrefused \
+          --connect-timeout 60 \
+          --max-time 300 \
+          -H "Content-Type: application/zip" \
+          --data-binary @"$(Build.ArtifactStagingDirectory)/build.zip" \
+          "$DEPLOY_URL" \
+        | tr -d '"'
+      )
+
+      echo "Deployment ID: $DEPLOYMENT_ID"
+      STATUS_URL="${DEPLOY_BASE}/api/deployments/${DEPLOYMENT_ID}"
+      LOG_URL="${DEPLOY_BASE}/api/deployments/${DEPLOYMENT_ID}/log"
+
+      # (2) 배포 완료될 때까지 polling (최대 10분)
+      echo "Polling deployment status..."
+      for i in $(seq 1 60); do
+        JSON=$(curl -sS -u "${USER}:${PASS}" "$STATUS_URL" || true)
+        COMPLETE=$(echo "$JSON" | jq -r '.complete // empty')
+        STATUS=$(echo "$JSON" | jq -r '.status // empty')
+        STATUS_TEXT=$(echo "$JSON" | jq -r '.status_text // empty')
+
+        echo "[$i/60] complete=$COMPLETE status=$STATUS status_text=$STATUS_TEXT"
+
+        if [ "$COMPLETE" = "true" ]; then
+          if [ "$STATUS" = "4" ] || [ "$STATUS" = "0" ]; then
+            echo "✅ Deployment completed successfully."
+            exit 0
+          else
+            echo "❌ Deployment completed but failed. Fetching last logs..."
+            curl -sS -u "${USER}:${PASS}" "$LOG_URL" | jq '. | .[-30:]'
+            exit 1
+          fi
+        fi
+
+        sleep 10
+      done
+
+      echo "❌ Deployment did not complete within timeout. Fetching last logs..."
+      curl -sS -u "${USER}:${PASS}" "$LOG_URL" | jq '. | .[-30:]'
+      exit 1
+    displayName: "Deploy to Azure Functions (OneDeploy) + Poll status"
     env:
-      # Secret 변수를 스크립트에서 안전하게 사용할 수 있도록 매핑합니다.
-      # 작은따옴표로 감싸는 것이 정석입니다.
       USER: '$(DEPLOY_USER)'
       PASS: '$(DEPLOY_PWD)'

@@ -14,8 +14,13 @@ sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), ".."
 from app.core.config import Config
 from app.database import Base
 
-# Import all models to ensure they are registered with Base.metadata
-from app.models import *  # noqa
+# Import all domain models to ensure they are registered with Base.metadata
+from app.domains.user.model import User  # noqa
+from app.domains.wardrobe.model import ClosetItem  # noqa
+from app.domains.recommendation.model import TodaysPick  # noqa
+from app.domains.weather.model import DailyWeather  # noqa
+from app.domains.chat.models import ChatSession, ChatMessage  # noqa
+from app.domains.outfit.model import OutfitLog  # noqa
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

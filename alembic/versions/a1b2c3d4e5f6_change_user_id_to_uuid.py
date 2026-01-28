@@ -1,0 +1,191 @@
+"""change user id to uuid
+
+Revision ID: a1b2c3d4e5f6
+Revises: 33a56fea63ab
+Create Date: 2026-01-23 12:00:00.000000
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
+
+# revision identifiers, used by Alembic.
+revision: str = 'a1b2c3d4e5f6'
+down_revision: Union[str, Sequence[str], None] = '33a56fea63ab'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    # Drop all tables that reference users.id first
+    op.drop_table('outfit_items')
+    op.drop_index(op.f('ix_chat_messages_message_id'), table_name='chat_messages')
+    op.drop_table('chat_messages')
+    op.drop_index(op.f('ix_outfit_logs_log_id'), table_name='outfit_logs')
+    op.drop_table('outfit_logs')
+    op.drop_index(op.f('ix_closet_items_id'), table_name='closet_items')
+    op.drop_table('closet_items')
+    op.drop_index(op.f('ix_chat_sessions_session_id'), table_name='chat_sessions')
+    op.drop_table('chat_sessions')
+    
+    # Drop users table
+    op.drop_index(op.f('ix_users_id'), table_name='users')
+    op.drop_table('users')
+    
+    # Create users table with UUID
+    op.create_table('users',
+    sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, server_default=sa.text('gen_random_uuid()')),
+    sa.Column('user_name', sa.String(), nullable=False),
+    sa.Column('body_shape', sa.String(), nullable=True),
+    sa.Column('height', sa.DECIMAL(precision=5, scale=2), nullable=True),
+    sa.Column('weight', sa.DECIMAL(precision=5, scale=2), nullable=True),
+    sa.Column('age', sa.Integer(), nullable=True),
+    sa.Column('gender', sa.String(), nullable=True),
+    sa.Column('password', sa.String(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    
+    # Recreate tables with UUID foreign keys
+    op.create_table('chat_sessions',
+    sa.Column('session_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column('session_summary', sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('session_id')
+    )
+    op.create_index(op.f('ix_chat_sessions_session_id'), 'chat_sessions', ['session_id'], unique=False)
+    
+    op.create_table('closet_items',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column('image_path', sa.String(), nullable=False),
+    sa.Column('category', sa.String(), nullable=False),
+    sa.Column('sub_category', sa.String(), nullable=True),
+    sa.Column('features', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('season', postgresql.ARRAY(sa.String()), nullable=True),
+    sa.Column('mood_tags', postgresql.ARRAY(sa.String()), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_closet_items_id'), 'closet_items', ['id'], unique=False)
+    
+    op.create_table('outfit_logs',
+    sa.Column('log_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column('worn_date', sa.Date(), nullable=False),
+    sa.Column('purpose', sa.String(), nullable=True),
+    sa.Column('location', sa.String(), nullable=True),
+    sa.Column('weather_snapshot', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('log_id')
+    )
+    op.create_index(op.f('ix_outfit_logs_log_id'), 'outfit_logs', ['log_id'], unique=False)
+    
+    op.create_table('chat_messages',
+    sa.Column('message_id', sa.Integer(), nullable=False),
+    sa.Column('session_id', sa.Integer(), nullable=False),
+    sa.Column('sender', sa.String(), nullable=False),
+    sa.Column('extracted_5w1h', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('clarification_count', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['session_id'], ['chat_sessions.session_id'], ),
+    sa.PrimaryKeyConstraint('message_id')
+    )
+    op.create_index(op.f('ix_chat_messages_message_id'), 'chat_messages', ['message_id'], unique=False)
+    
+    op.create_table('outfit_items',
+    sa.Column('log_id', sa.Integer(), nullable=False),
+    sa.Column('item_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['item_id'], ['closet_items.id'], ),
+    sa.ForeignKeyConstraint(['log_id'], ['outfit_logs.log_id'], ),
+    sa.PrimaryKeyConstraint('log_id', 'item_id')
+    )
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    # Drop all tables
+    op.drop_table('outfit_items')
+    op.drop_index(op.f('ix_chat_messages_message_id'), table_name='chat_messages')
+    op.drop_table('chat_messages')
+    op.drop_index(op.f('ix_outfit_logs_log_id'), table_name='outfit_logs')
+    op.drop_table('outfit_logs')
+    op.drop_index(op.f('ix_closet_items_id'), table_name='closet_items')
+    op.drop_table('closet_items')
+    op.drop_index(op.f('ix_chat_sessions_session_id'), table_name='chat_sessions')
+    op.drop_table('chat_sessions')
+    op.drop_index(op.f('ix_users_id'), table_name='users')
+    op.drop_table('users')
+    
+    # Recreate with Integer (revert to previous schema)
+    op.create_table('users',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_name', sa.String(), nullable=False),
+    sa.Column('body_shape', sa.String(), nullable=True),
+    sa.Column('height', sa.DECIMAL(precision=5, scale=2), nullable=True),
+    sa.Column('weight', sa.DECIMAL(precision=5, scale=2), nullable=True),
+    sa.Column('age', sa.Integer(), nullable=True),
+    sa.Column('gender', sa.String(), nullable=True),
+    sa.Column('password', sa.String(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
+    
+    op.create_table('chat_sessions',
+    sa.Column('session_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('session_summary', sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('session_id')
+    )
+    op.create_index(op.f('ix_chat_sessions_session_id'), 'chat_sessions', ['session_id'], unique=False)
+    
+    op.create_table('closet_items',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('image_path', sa.String(), nullable=False),
+    sa.Column('category', sa.String(), nullable=False),
+    sa.Column('sub_category', sa.String(), nullable=True),
+    sa.Column('features', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('season', postgresql.ARRAY(sa.String()), nullable=True),
+    sa.Column('mood_tags', postgresql.ARRAY(sa.String()), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_closet_items_id'), 'closet_items', ['id'], unique=False)
+    
+    op.create_table('outfit_logs',
+    sa.Column('log_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('worn_date', sa.Date(), nullable=False),
+    sa.Column('purpose', sa.String(), nullable=True),
+    sa.Column('location', sa.String(), nullable=True),
+    sa.Column('weather_snapshot', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('log_id')
+    )
+    op.create_index(op.f('ix_outfit_logs_log_id'), 'outfit_logs', ['log_id'], unique=False)
+    
+    op.create_table('chat_messages',
+    sa.Column('message_id', sa.Integer(), nullable=False),
+    sa.Column('session_id', sa.Integer(), nullable=False),
+    sa.Column('sender', sa.String(), nullable=False),
+    sa.Column('extracted_5w1h', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('clarification_count', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['session_id'], ['chat_sessions.session_id'], ),
+    sa.PrimaryKeyConstraint('message_id')
+    )
+    op.create_index(op.f('ix_chat_messages_message_id'), 'chat_messages', ['message_id'], unique=False)
+    
+    op.create_table('outfit_items',
+    sa.Column('log_id', sa.Integer(), nullable=False),
+    sa.Column('item_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['item_id'], ['closet_items.id'], ),
+    sa.ForeignKeyConstraint(['log_id'], ['outfit_logs.log_id'], ),
+    sa.PrimaryKeyConstraint('log_id', 'item_id')
+    )
