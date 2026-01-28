@@ -22,10 +22,9 @@ async def send_message(
     request: ChatRequest,
     current_user: User = Depends(get_current_user),
     service=Depends(get_chat_service),
-    workflow=Depends(get_chat_workflow),
 ):
     """사용자 메시지를 처리하고 응답을 반환합니다."""
-    result = await service.send_message(request, current_user, workflow)
+    result = await service.send_message(request, current_user)
 
     return SendMessageResponse(
         success=True,
