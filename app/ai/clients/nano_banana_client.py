@@ -162,14 +162,14 @@ class NanoBananaClient:
             # Vertex AI SDK returns `GeneratedImage` which has `_image_bytes`?
             # Creating a temp file is safer for now.
 
-            temp_filename = f"temp_{os.urandom(4).hex()}.png"
-            generated_image.save(location=temp_filename)
+            import tempfile
 
-            with open(temp_filename, "rb") as f:
-                image_bytes = f.read()
-
-            os.remove(temp_filename)
-
+            image_bytes = None
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+                generated_image.save(location=tmp.name)
+                tmp.seek(0)
+                image_bytes = tmp.read()
+            os.remove(tmp.name)
             return image_bytes  # Return bytes so caller can upload
 
         except Exception as e:
