@@ -1,17 +1,12 @@
 import logging
 import os
-import json
+import io
 from typing import Optional
 from google.oauth2 import service_account
 
-# google-cloud-aiplatform 패키지 필요
-try:
-    import vertexai
-    from vertexai.preview.vision_models import ImageGenerationModel, Image
-
-    HAS_VERTEX_AI = True
-except ImportError:
-    HAS_VERTEX_AI = False
+# google-genai SDK 사용
+from google import genai
+from google.genai import types
 
 from app.core.config import Config
 
@@ -20,160 +15,187 @@ logger = logging.getLogger(__name__)
 
 class NanoBananaClient:
     """
-    Google Vertex AI (Imagen) Wrapper Client
+    Google Vertex AI (Imagen) Wrapper Client using google-genai SDK
     'Nano Banana'라는 이름으로 사용됩니다.
+    
+    Supports both generate_images and edit_image with reference images.
     """
 
     def __init__(self):
-        if not HAS_VERTEX_AI:
-            logger.warning(
-                "google-cloud-aiplatform package is not installed. Nano Banana features will be disabled."
-            )
-            self.model = None
-            return
+        self.client = None
 
         try:
-            # Initialize Vertex AI with service account file
-            credentials = None
-            service_account_path = os.path.join(
-                os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-                ),
-                "service_account.json",
-            )
-
-            if os.path.exists(service_account_path):
-                logger.info(f"Loading service account from: {service_account_path}")
-                credentials = service_account.Credentials.from_service_account_file(
-                    service_account_path
-                )
-            else:
-                logger.warning(
-                    f"Service account file not found at: {service_account_path}"
-                )
-                # Fallback to environment variables (for production)
-                if Config.GOOGLE_PRIVATE_KEY and Config.GOOGLE_CLIENT_EMAIL:
-                    try:
-                        info = {
-                            "type": Config.GOOGLE_TYPE,
-                            "project_id": Config.GOOGLE_PROJECT_ID,
-                            "private_key_id": Config.GOOGLE_PRIVATE_KEY_ID,
-                            "private_key": (
-                                Config.GOOGLE_PRIVATE_KEY.replace("\\n", "\n")
-                                if Config.GOOGLE_PRIVATE_KEY
-                                else None
-                            ),
-                            "client_email": Config.GOOGLE_CLIENT_EMAIL,
-                            "client_id": Config.GOOGLE_CLIENT_ID,
-                            "auth_uri": Config.GOOGLE_AUTH_URI,
-                            "token_uri": Config.GOOGLE_TOKEN_URI,
-                            "auth_provider_x509_cert_url": Config.GOOGLE_AUTH_PROVIDER_X509_CERT_URL,
-                            "client_x509_cert_url": Config.GOOGLE_CLIENT_X509_CERT_URL,
-                            "universe_domain": Config.GOOGLE_UNIVERSE_DOMAIN,
-                        }
-                        credentials = (
-                            service_account.Credentials.from_service_account_info(info)
-                        )
-                        logger.info(
-                            "Loaded Google Credentials from individual env vars."
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"Failed to load Google Credentials from env vars: {e}"
-                        )
-
-            # Load project ID correctly
+            credentials = self._get_credentials()
             project_id = Config.GOOGLE_CLOUD_PROJECT or Config.GOOGLE_PROJECT_ID
+            location = Config.GOOGLE_CLOUD_LOCATION or "asia-northeast3"
+
             if not project_id:
                 logger.error(
                     "GOOGLE_CLOUD_PROJECT or GOOGLE_PROJECT_ID is not set in Config."
                 )
-                self.model = None
                 return
 
-            vertexai.init(
+            self.client = genai.Client(
+                vertexai=True,
                 project=project_id,
-                location=Config.GOOGLE_CLOUD_LOCATION,
+                location=location,
                 credentials=credentials,
             )
-
-            # Load Imagen 3 model (latest stable version)
-            self.model = ImageGenerationModel.from_pretrained("imagen-3.0-generate-001")
             logger.info(
-                f"Nano Banana (Vertex AI Imagen 3) Client initialized successfully for project {project_id}."
+                f"[SUCCESS] Nano Banana initialized with google-genai SDK (project={project_id}, location={location})"
             )
-
         except Exception as e:
-            logger.error(f"Failed to initialize Nano Banana Client: {e}")
+            logger.error(f"Failed to initialize google-genai SDK: {e}")
             import traceback
-
             logger.error(traceback.format_exc())
-            self.model = None
+
+    def _get_credentials(self):
+        """Get Google Cloud credentials from file or env vars with proper scopes"""
+        # Vertex AI requires cloud-platform scope
+        scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+        
+        service_account_path = os.path.join(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            ),
+            "service_account.json",
+        )
+
+        if os.path.exists(service_account_path):
+            logger.info(f"Loading service account from: {service_account_path}")
+            creds = service_account.Credentials.from_service_account_file(
+                service_account_path, scopes=scopes
+            )
+            return creds
+        else:
+            logger.warning(
+                f"Service account file not found at: {service_account_path}"
+            )
+            # Fallback to environment variables
+            if Config.GOOGLE_PRIVATE_KEY and Config.GOOGLE_CLIENT_EMAIL:
+                try:
+                    info = {
+                        "type": Config.GOOGLE_TYPE,
+                        "project_id": Config.GOOGLE_PROJECT_ID,
+                        "private_key_id": Config.GOOGLE_PRIVATE_KEY_ID,
+                        "private_key": (
+                            Config.GOOGLE_PRIVATE_KEY.replace("\\n", "\n")
+                            if Config.GOOGLE_PRIVATE_KEY
+                            else None
+                        ),
+                        "client_email": Config.GOOGLE_CLIENT_EMAIL,
+                        "client_id": Config.GOOGLE_CLIENT_ID,
+                        "auth_uri": Config.GOOGLE_AUTH_URI,
+                        "token_uri": Config.GOOGLE_TOKEN_URI,
+                        "auth_provider_x509_cert_url": Config.GOOGLE_AUTH_PROVIDER_X509_CERT_URL,
+                        "client_x509_cert_url": Config.GOOGLE_CLIENT_X509_CERT_URL,
+                        "universe_domain": Config.GOOGLE_UNIVERSE_DOMAIN,
+                    }
+                    creds = service_account.Credentials.from_service_account_info(
+                        info, scopes=scopes
+                    )
+                    logger.info("Loaded Google Credentials from env vars.")
+                    return creds
+                except Exception as e:
+                    logger.error(f"Failed to load credentials from env vars: {e}")
+                    raise
+            else:
+                raise ValueError("No credentials found (file or env vars)")
 
     def generate_image(
         self,
         prompt: str,
         negative_prompt: Optional[str] = None,
         base_image_bytes: Optional[bytes] = None,
+        reference_images: Optional[list[bytes]] = None,
+        aspect_ratio: str = "9:16",
     ) -> Optional[bytes]:
         """
         Generate an image using Nano Banana (Imagen 3)
+        
+        Args:
+            prompt: Text prompt
+            negative_prompt: Negative prompt (optional)
+            base_image_bytes: Base image (currently not used, kept for compatibility)
+            reference_images: List of reference image bytes (currently not used)
+            aspect_ratio: Image aspect ratio (default: "9:16"). Supported: "1:1", "3:4", "4:3", "9:16", "16:9"
+        
+        Returns:
+            Image bytes (PNG) or None on failure
         """
-        if not self.model:
+        if not self.client:
             logger.error("Nano Banana Client is not initialized.")
             return None
 
+        return self._generate_with_genai(
+            prompt, negative_prompt, base_image_bytes, reference_images, aspect_ratio
+        )
+
+    def _generate_with_genai(
+        self,
+        prompt: str,
+        negative_prompt: Optional[str],
+        base_image_bytes: Optional[bytes],
+        reference_images: Optional[list[bytes]],
+        aspect_ratio: str = "9:16",
+    ) -> Optional[bytes]:
+        """Generate image using google-genai SDK"""
         try:
-            logger.info(f"Generating image. Prompt length: {len(prompt)}")
-            if base_image_bytes:
-                logger.info(
-                    "Using base_image_bytes for generation (Image-to-Image style if supported)"
+            logger.info(f"Generating image with google-genai SDK. Prompt length: {len(prompt)}")
+
+            # Use generate_images API (text-to-image only)
+            logger.info("Using generate_images API")
+            try:
+                # Use GenerateImagesConfig (note: plural "Images")
+                config = types.GenerateImagesConfig(
+                    number_of_images=1,
+                    aspect_ratio=aspect_ratio,
+                    person_generation="allow_adult",
                 )
 
-            # Generate
-            # Note: Imagen 3 stable API might require specific parameters for image reference
-            images = self.model.generate_images(
-                prompt=prompt,
-                number_of_images=1,
-                aspect_ratio="1:1",
-                # negative_prompt=negative_prompt, # Check SDK version support
-                language="ko",  # Support Korean prompts if needed, or translate
-                safety_filter_level="block_some",
-                person_generation="allow_adult",
-            )
+                # Use standard generate-002 model (for comparison with fast model)
+                model_name = "imagen-3.0-generate-002"
+                logger.info(f"Using {model_name} for generation")
+                response = self.client.models.generate_images(
+                    model=model_name,
+                    prompt=prompt,
+                    config=config,
+                )
 
-            if not images:
-                logger.warning("No images generated.")
+                if response.generated_images:
+                    generated_img = response.generated_images[0]
+                    # Access image bytes - may be .image.image_bytes or .image_bytes
+                    try:
+                        if hasattr(generated_img, 'image') and hasattr(generated_img.image, 'image_bytes'):
+                            img_bytes = generated_img.image.image_bytes
+                        elif hasattr(generated_img, 'image_bytes'):
+                            img_bytes = generated_img.image_bytes
+                        elif hasattr(generated_img, 'to_bytes'):
+                            img_bytes = generated_img.to_bytes()
+                        else:
+                            # Fallback: try to get bytes from image object
+                            img_bytes = bytes(generated_img.image) if hasattr(generated_img, 'image') else None
+                            if not img_bytes:
+                                raise AttributeError("Could not extract image bytes")
+                        logger.info(f"[SUCCESS] Generated image via generate_images ({len(img_bytes)} bytes)")
+                        return img_bytes
+                    except Exception as e:
+                        logger.error(f"Failed to extract image bytes: {e}")
+                        import traceback
+                        logger.debug(traceback.format_exc())
+                else:
+                    logger.warning("generate_images returned no images")
+                    return None
+            except Exception as e:
+                logger.error(f"generate_images failed: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
                 return None
 
-            # GeneratedImage object from Vertex AI
-            generated_image = images[0]
-
-            # We need to save this image to Azure Blob Storage
-            # The GeneratedImage object usually has a method to save or get bytes
-            # generated_image.save("temp.png")
-
-            # For now, let's returning the temporary local path or bytes logic needs to be handled
-            # But the requirement asks to return a URL.
-            # So this client might need to depend on BlobStorage?
-            # Or better, return bytes and let the caller handle upload.
-
-            # generated_image._image_bytes (Internal) or save to buffer
-            # Vertex AI SDK returns `GeneratedImage` which has `_image_bytes`?
-            # Creating a temp file is safer for now.
-
-            import tempfile
-
-            image_bytes = None
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-                generated_image.save(location=tmp.name)
-                tmp.seek(0)
-                image_bytes = tmp.read()
-            os.remove(tmp.name)
-            return image_bytes  # Return bytes so caller can upload
-
         except Exception as e:
-            logger.error(f"Error during image generation: {e}")
+            logger.error(f"Error during image generation with google-genai: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
 
     def generate_mannequin_composite(
@@ -187,12 +209,17 @@ class NanoBananaClient:
         body_shape: Optional[str] = None,
         mannequin_bytes: Optional[bytes] = None,
         user_id: Optional[str] = None,
+        reference_images: Optional[list[bytes]] = None,
+        aspect_ratio: str = "9:16",
     ) -> Optional[str]:
         """
         Generate a composite mannequin image with top and bottom items.
         Returns the URL of the generated image in Azure Blob Storage.
+        
+        Args:
+            aspect_ratio: Image aspect ratio (default: "9:16"). Supported: "1:1", "3:4", "4:3", "9:16", "16:9"
         """
-        if not self.model:
+        if not self.client:
             logger.error("Nano Banana Client is not initialized.")
             return None
 
@@ -213,17 +240,75 @@ class NanoBananaClient:
             )
             m_shape = (body_shape or "average").lower()
 
+            # Body profile mapping based on gender and body shape
+            body_profiles = {
+                "man": {
+                    "slim": "narrow shoulders, small chest, narrow waist, narrow hips, low muscle definition, low body fat, slim arms and legs",
+                    "average": "average shoulders, average chest, average waist, average hips, medium body fat, low-to-medium muscle definition, average limbs",
+                    "athletic": "broad shoulders, medium chest, narrow waist, narrow hips, medium muscle definition, low body fat, athletic limbs (not bulky)",
+                    "muscular": "very broad shoulders, large chest, narrow waist, narrow hips, high muscle definition, low body fat, thick arms and thighs",
+                    "stocky": "broad shoulders, large waist, wider midsection, average hips, higher body fat, low muscle definition, thick arms and legs",
+                },
+                "woman": {
+                    "slim": "narrow shoulders, small bust, narrow waist, narrow hips, low body fat, low muscle definition, slim arms and legs",
+                    "average": "average shoulders, average bust, average waist, average hips, medium body fat, low-to-medium muscle definition, average limbs",
+                    "athletic": "slightly broad/average shoulders, small-to-average bust, narrow waist, average hips, medium muscle definition, low body fat, toned limbs",
+                    "toned_curvy": "average shoulders, average bust, defined waist, wider hips, medium muscle definition, medium body fat, curvy silhouette with toned legs",
+                    "stocky": "average-to-broad shoulders, average bust, wider waist, wider hips, higher body fat, low muscle definition, thick limbs",
+                },
+            }
+
+            # Get body profile description
+            profile_map = body_profiles.get(m_gender, body_profiles["woman"])
+            body_profile_desc = profile_map.get(m_shape, profile_map.get("average", "average body proportions"))
+
+            # 1:1 정사각형 비율에 최적화된 프롬프트 (전신 정면)
             prompt = (
-                f"A high-quality fashion studio shot of a realistic {m_shape} {m_gender} mannequin wearing {outfit_desc}. "
-                f"The mannequin has a {m_shape} build as seen in professional fashion displays. "
-                "The mannequin is standing in a natural pose against a clean, minimal white background. "
-                "Soft studio lighting, commercial fashion photography style, 8k resolution, professional look, sharp focus."
+                f"Full-body, full shot, head-to-toe, front-facing, straight-on view studio photo of a realistic {m_gender} mannequin with a {m_shape} body type, wearing {outfit_desc}. "
+                f"Body profile: {body_profile_desc}. "
+                f"The mannequin must be facing directly towards the camera, standing straight, with head, torso, and legs fully visible from top to bottom. "
+                f"Use a clean light-gray or white seamless background and professional soft fashion studio lighting.\n\n"
+            )
+
+            # CRITICAL 섹션: 체형 보존
+            prompt += (
+                "CRITICAL:\n"
+                "- Preserve the mannequin's body proportions EXACTLY from the base mannequin image (do not change body shape, height, or limb length).\n"
+                "- The subject is a mannequin: matte plastic/fiberglass, featureless head, no facial features, no hair, no skin texture.\n\n"
+            )
+
+            # GARMENT FIDELITY 섹션: 옷의 정확성
+            prompt += (
+                "GARMENT FIDELITY:\n"
+                "- Preserve the exact garment colors, patterns, logos, and text. Do not alter prints or invent new details.\n"
+                "- Natural fit and drape with realistic wrinkles consistent with the fabric.\n\n"
+            )
+
+            # COMPOSITION 섹션: 구도
+            prompt += (
+                "COMPOSITION:\n"
+                "- Full shot: head, torso, and legs must be completely visible from top to bottom (head-to-toe).\n"
+                "- Front-facing: mannequin must face directly towards the camera, straight-on view, no side angle or profile view.\n"
+                "- Centered, relaxed standing pose, sharp focus, commercial fashion catalog quality.\n\n"
+            )
+
+            # 금지 문구 (사고 방지)
+            prompt += (
+                "No human skin, no realistic face, no nipples, no lingerie, no nude appearance.\n"
+                "No extra accessories unless specified. No hats, no sunglasses, no jewelry.\n"
+                "No background props, no text overlays, no watermarks."
             )
 
             logger.info(
-                f"Generating personalized composite image with prompt: {prompt}"
+                f"Generating personalized composite image with prompt (len={len(prompt)})"
             )
-            image_bytes = self.generate_image(prompt, base_image_bytes=mannequin_bytes)
+
+            image_bytes = self.generate_image(
+                prompt,
+                base_image_bytes=mannequin_bytes,
+                reference_images=reference_images,
+                aspect_ratio=aspect_ratio,
+            )
 
             if not image_bytes:
                 logger.error("Failed to generate image bytes from prompt.")
@@ -263,7 +348,7 @@ class NanoBananaClient:
             blob_client.upload_blob(image_bytes, overwrite=True)
 
             image_url = f"https://{account_name}.blob.core.windows.net/{container_name}/{filename}"
-            logger.info(f"✅ Generated composite image: {image_url}")
+            logger.info(f"[SUCCESS] Generated composite image: {image_url}")
             return image_url
 
         except Exception as e:

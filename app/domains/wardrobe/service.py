@@ -76,8 +76,11 @@ class WardrobeManager:
             return image_path
 
         try:
+            # Remove existing query parameters if any (to avoid duplicate SAS tokens)
+            base_url = image_path.split("?")[0] if "?" in image_path else image_path
+            
             # Extract blob name from URL
-            parts = image_path.split(".blob.core.windows.net/")
+            parts = base_url.split(".blob.core.windows.net/")
             if len(parts) > 1:
                 # e.g. "images/users/..." or "codify0blob0storage/users/..."
                 container_and_blob = parts[1]
@@ -90,7 +93,7 @@ class WardrobeManager:
                         blob_name, container_name=container_name
                     )
                     if sas_token:
-                        return f"{image_path}?{sas_token}"
+                        return f"{base_url}?{sas_token}"
         except Exception:
             pass
 

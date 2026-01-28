@@ -107,13 +107,39 @@ def get_item_description_en(item: ClosetItem) -> str:
     """Generate an English description of the item for Imagen prompt"""
     features = item.features or {}
 
-    color = features.get("color", {}).get("primary", "unknown")
-    category = features.get("category", {}).get("sub", "clothing")
-    material = features.get("material", {}).get("guess", "")
+    # 색상 추출 (features.color.primary 또는 features.color)
+    color_raw = features.get("color")
+    if isinstance(color_raw, dict):
+        color = color_raw.get("primary", "unknown")
+    elif isinstance(color_raw, str):
+        color = color_raw
+    else:
+        color = "unknown"
+
+    # 카테고리 추출 (features.category.sub 또는 item.category)
+    category_raw = features.get("category")
+    if isinstance(category_raw, dict):
+        category = category_raw.get("sub", "clothing")
+    elif isinstance(category_raw, str):
+        category = category_raw
+    else:
+        # features에 없으면 DB의 category/sub_category 사용
+        category = item.sub_category or item.category or "clothing"
+
+    # 소재 추출
+    material_raw = features.get("material")
+    if isinstance(material_raw, dict):
+        material = material_raw.get("guess", "")
+    elif isinstance(material_raw, str):
+        material = material_raw
+    else:
+        material = ""
 
     desc = f"{color} {category}"
     if material:
         desc += f" made of {material}"
+    
+    logger.debug(f"Item description for {item.id}: {desc}")
     return desc
 
 
@@ -208,24 +234,37 @@ def generate_todays_pick_composite(
     top: ClosetItem, bottom: ClosetItem, user: User, db: Session
 ) -> Optional[str]:
     """
-    Nano Banana를 사용하여 composite 이미지 생성
+    Nano Banana를 사용하여 composite 이미지 생성 (마네킹 기반)
     """
-    logger.info(f"Generating composite image for top={top.id}, bottom={bottom.id}")
+    logger.info(
+        f"Generating composite image for top={top.id} (category={top.category}), "
+        f"bottom={bottom.id} (category={bottom.category}), "
+        f"user={user.id} (gender={user.gender}, body_shape={user.body_shape})"
+    )
 
     # Get descriptions
     top_desc = get_item_description_en(top)
     bottom_desc = get_item_description_en(bottom)
+    logger.info(f"Item descriptions - Top: {top_desc}, Bottom: {bottom_desc}")
 
     try:
         client = NanoBananaClient()
 
-        if not client.model:
-            raise RuntimeError("Nano Banana client not initialized")
+        if not client.client:
+            error_msg = "Nano Banana client not initialized. Check Google Cloud credentials."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
-        # Get mannequin bytes
+        # Get mannequin bytes (base mannequin preserving body shape)
         man_bytes = mannequin_manager.get_mannequin_bytes(user.gender, user.body_shape)
+        if not man_bytes:
+            error_msg = f"Failed to load mannequin image for gender={user.gender}, body_shape={user.body_shape}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        logger.info(f"Loaded mannequin bytes: {len(man_bytes)} bytes")
 
         # Generate and Upload (Client handles logic)
+        # 1:1 비율로 정사각형 이미지 생성 (Flutter 컨테이너에 맞춤)
         image_url = client.generate_mannequin_composite(
             top_description=top_desc,
             bottom_description=bottom_desc,
@@ -233,15 +272,21 @@ def generate_todays_pick_composite(
             gender=user.gender,
             body_shape=user.body_shape,
             user_id=str(user.id),
+            reference_images=None,  # 레퍼런스 이미지 사용 안 함
+            aspect_ratio="1:1",  # 정사각형 비율
         )
 
         if image_url:
-            logger.info(f"✅ Composite image generated: {image_url}")
+            logger.info(f"[SUCCESS] Composite image generated successfully: {image_url}")
             return image_url
         else:
-            logger.warning("Nano Banana returned None")
+            logger.warning("[FAILED] Nano Banana returned None - image generation failed")
             return None
 
+    except RuntimeError as e:
+        # 명시적인 RuntimeError는 그대로 전파 (호출자가 처리)
+        logger.error(f"Runtime error in image generation: {e}", exc_info=True)
+        raise
     except Exception as e:
-        logger.error(f"Image generation error: {e}", exc_info=True)
+        logger.error(f"Unexpected error in image generation: {e}", exc_info=True)
         return None

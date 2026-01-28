@@ -148,7 +148,7 @@ def generate_todays_pick_composite(
         )
 
         if image_url:
-            logger.info(f"✅ Composite image generated: {image_url}")
+            logger.info(f"[SUCCESS] Composite image generated: {image_url}")
             return image_url
         else:
             logger.warning("Nano Banana returned None")

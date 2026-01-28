@@ -194,17 +194,35 @@ class WeatherService:
         코디 추천 엔진에서 사용하기 위한 날씨 정보 간편 반환 함수
         """
         from app.core.regions import get_nearest_region
+        from app.core.config import Config
+
+        # KMA API Key 확인
+        if not Config.KMA_API_KEY:
+            logger.error("KMA_API_KEY is not set in environment variables")
+            raise ValueError(
+                "KMA_API_KEY가 설정되지 않았습니다. 환경 변수를 확인해주세요."
+            )
 
         # 1. 좌표 변환 (lat, lon -> nx, ny)
-        grid = dfs_xy_conv("toGRID", lat, lon)
-        nx, ny = int(grid.get("x", 60)), int(grid.get("y", 127))
+        try:
+            grid = dfs_xy_conv("toGRID", lat, lon)
+            nx, ny = int(grid.get("x", 60)), int(grid.get("y", 127))
+            logger.info(f"Converted coordinates: lat={lat}, lon={lon} -> nx={nx}, ny={ny}")
+        except Exception as e:
+            logger.error(f"Failed to convert coordinates: {e}", exc_info=True)
+            raise ValueError(f"좌표 변환 실패: {e}")
 
         # 2. 가장 가까운 지역명 가져오기
-        region_name, _ = get_nearest_region(lat, lon)
+        try:
+            region_name, _ = get_nearest_region(lat, lon)
+            logger.info(f"Nearest region: {region_name}")
+        except Exception as e:
+            logger.warning(f"Failed to get nearest region: {e}")
+            region_name = "현위치"
 
         try:
             # 3. 데이터 조회 (DB 또는 API)
-            weather_obj, _ = await self.get_daily_weather_summary(
+            weather_obj, msg = await self.get_daily_weather_summary(
                 db, nx, ny, region_name
             )
 
@@ -223,21 +241,22 @@ class WeatherService:
                 else:
                     summary += " (선선한 날씨)"
 
+                logger.info(f"Weather info retrieved successfully: {summary} (source: {msg})")
                 return {
                     "summary": summary,
                     "temp_min": min_temp,
                     "temp_max": max_temp,
                     "region": region_name,
                 }
+            else:
+                logger.warning(f"Weather object is None. Message: {msg}")
+                raise ValueError(f"날씨 데이터를 가져올 수 없습니다: {msg}")
+        except ValueError:
+            # 명시적인 ValueError는 그대로 전파
+            raise
         except Exception as e:
             logger.error(f"Error in get_weather_info: {e}", exc_info=True)
-
-        return {
-            "summary": "날씨 정보를 가져올 수 없습니다.",
-            "temp_min": 0,
-            "temp_max": 0,
-            "region": region_name,
-        }
+            raise ValueError(f"날씨 정보 조회 중 오류 발생: {str(e)}")
 
     def _parse_weather_data(
         self, items: list

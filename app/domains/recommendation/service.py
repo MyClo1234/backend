@@ -378,11 +378,14 @@ class OutfitRecommender:
         return lat, lon, False
 
     async def get_todays_pick(
-        self, db: Session, user_id: UUID, lat: float, lon: float
+        self, db: Session, user_id: UUID, lat: float, lon: float, force_regenerate: bool = False
     ) -> Dict[str, Any]:
         """
         오늘의 추천 코디 (Today's Pick) - 단순화된 버전
         새로운 todays_pick_service를 사용하여 LLM + 이미지 생성 필수
+        
+        Args:
+            force_regenerate: True이면 캐시를 무시하고 강제로 재생성
         """
         from fastapi import HTTPException
         from app.llm.todays_pick_service import (
@@ -403,7 +406,14 @@ class OutfitRecommender:
         )
 
         # 1. 오늘 이미 생성된 추천이 있는지 확인
-        if existing_pick and existing_pick.date == today:
+        # 단, 과거에 이미지 생성이 실패해서 image_url 이 비어있는 픽은 캐시로 사용하지 않고 새로 생성한다.
+        # force_regenerate가 True이면 캐시를 무시하고 새로 생성
+        if (
+            not force_regenerate
+            and existing_pick
+            and existing_pick.date == today
+            and existing_pick.image_url not in (None, "")
+        ):
             logger.info(
                 f"Found existing Today's Pick for user {user_id} for today ({today})"
             )
@@ -431,15 +441,27 @@ class OutfitRecommender:
             }
 
         # 2. 날씨 정보 가져오기 (중앙화된 함수 사용)
-        weather_info = await weather_service.get_weather_info(db, lat, lon)
+        try:
+            weather_info = await weather_service.get_weather_info(db, lat, lon)
+        except ValueError as e:
+            # 날씨 조회 실패 시 구체적인 에러 메시지 전달
+            logger.error(f"Weather info retrieval failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logger.error(f"Unexpected error getting weather info: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=500, detail=f"날씨 정보 조회 중 오류: {str(e)}"
+            )
 
+        # 날씨 정보 유효성 검증
         if not weather_info or (
             weather_info.get("temp_min") == 0
             and weather_info.get("temp_max") == 0
             and "기온" not in weather_info.get("summary", "")
         ):
+            logger.error(f"Invalid weather info returned: {weather_info}")
             raise HTTPException(
-                status_code=500, detail="날씨 정보를 가져올 수 없습니다."
+                status_code=500, detail="날씨 정보를 가져올 수 없습니다. (유효하지 않은 데이터)"
             )
 
         # 3. 새로운 서비스로 Today's Pick 생성 (LLM + 이미지 생성 필수)

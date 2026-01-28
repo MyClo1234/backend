@@ -3,8 +3,7 @@
 """
 
 import json
-import asyncio
-from typing import Dict, Any, List
+from typing import Dict, List
 from app.ai.schemas.workflow_state import RecommendationState
 from app.ai.clients.azure_openai_client import azure_openai_client
 from app.utils.json_parser import parse_json_from_text
@@ -279,8 +278,6 @@ def fallback_recommendation_node(state: RecommendationState) -> RecommendationSt
 
     return state
 
-    return "llm"
-
 
 def format_item_for_llm(item: ClosetItem) -> str:
     """ClosetItem을 LLM이 이해하기 쉬운 문자열로 변환"""
@@ -321,11 +318,11 @@ def recommend_todays_pick_outfit(
         context=context or "특별한 요청 없음",
     )
 
-    # LLM 호출
+    # LLM 호출 (temperature를 높여서 다양성 확보)
     llm = AzureChatOpenAI(
         azure_deployment=Config.AZURE_OPENAI_DEPLOYMENT_NAME,
         api_version=Config.AZURE_OPENAI_API_VERSION,
-        temperature=0.7,
+        temperature=0.9,  # 다양성을 위해 0.7에서 0.9로 증가
         max_tokens=500,
     )
 

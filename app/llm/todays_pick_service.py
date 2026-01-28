@@ -28,19 +28,19 @@ def fetch_wardrobe_items(
     logger.info(f"Fetching wardrobe items for user {user_id}")
 
     # 모든 아이템 조회
-    all_items = db.query(ClosetItem).filter(ClosetItem.user_id == str(user_id)).all()
+    all_items = db.query(ClosetItem).filter(ClosetItem.user_id == user_id).all()
     tops = []
     bottoms = []
 
     for item in all_items:
-        if not item.features:
-            continue
+        # DB에는 category가 대소문자 혼용(top, TOP, bottom 등) + 오타(bottome)까지 섞여 있을 수 있음
+        raw_cat = (item.category or "").strip()
+        cat_upper = raw_cat.upper()
 
-        category_main = item.features.get("category", {}).get("main", "")
-
-        if category_main == "top":
+        # 오타 및 혼용 보정
+        if cat_upper == "TOP":
             tops.append(item)
-        elif category_main == "bottom":
+        elif cat_upper in ("BOTTOM", "BOTTOME"):
             bottoms.append(item)
 
     logger.info(f"Found {len(tops)} tops and {len(bottoms)} bottoms")
@@ -80,7 +80,7 @@ def save_todays_pick_to_db(
     db.commit()
     db.refresh(new_pick)
 
-    logger.info(f"✅ Today's Pick saved with ID: {new_pick.id}")
+    logger.info(f"[SUCCESS] Today's Pick saved with ID: {new_pick.id}")
 
     return new_pick
 
@@ -127,12 +127,21 @@ def recommend_todays_pick_v2(
                 f"Selected items not found in wardrobe: top={recommendation['top_id']}, bottom={recommendation['bottom_id']}"
             )
 
-        image_url = generate_todays_pick_composite(top_item, bottom_item, user, db)
+        try:
+            image_url = generate_todays_pick_composite(top_item, bottom_item, user, db)
+        except RuntimeError as e:
+            # 명시적인 RuntimeError (예: 클라이언트 초기화 실패)는 사용자에게 전달
+            logger.error(f"Image generation failed with RuntimeError: {e}")
+            raise RuntimeError(f"이미지 생성 실패: {str(e)}")
+        except Exception as e:
+            # 기타 예외는 로그만 남기고 계속 진행 (추천은 저장)
+            logger.error(f"Image generation failed with unexpected error: {e}", exc_info=True)
+            image_url = None
 
         # If generation failed, handle it
         if not image_url:
             logger.warning(
-                "Image generation failed. Recommended items still being saved."
+                "Image generation failed. Recommended items still being saved without image."
             )
             image_url = ""
 
@@ -161,5 +170,5 @@ def recommend_todays_pick_v2(
         }
 
     except Exception as e:
-        logger.error(f"❌ Today's Pick recommendation failed: {str(e)}", exc_info=True)
+        logger.error(f"[FAILED] Today's Pick recommendation failed: {str(e)}", exc_info=True)
         raise

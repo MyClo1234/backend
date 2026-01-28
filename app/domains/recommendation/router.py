@@ -47,16 +47,20 @@ async def recommend_todays_pick(
     request: TodaysPickRequest,
     user_id: UUID = Depends(get_user_id_from_token),
     db: Session = Depends(get_db),
+    force_regenerate: bool = Query(False, description="캐시 무시하고 강제 재생성"),
 ):
     """
     오늘의 추천 코디 (Today's Pick)
 
     사용자의 위치(위도, 경도)를 기반으로 날씨를 조회하고,
     사용자의 옷장에서 현재 날씨/계절에 적합한 옷을 찾아 추천합니다.
+    
+    Args:
+        force_regenerate: True로 설정하면 캐시를 무시하고 새로 생성합니다
     """
     try:
         result = await recommender.get_todays_pick(
-            db, user_id, request.lat, request.lon
+            db, user_id, request.lat, request.lon, force_regenerate=force_regenerate
         )
         return result
     except Exception as e:
