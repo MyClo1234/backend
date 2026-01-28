@@ -93,7 +93,9 @@ def get_outfit_score(top_id: str = Query(...), bottom_id: str = Query(...)):
         raise handle_route_exception(e)
 
 
+# deprecated
 @recommendation_router.get("/recommend/outfit", response_model=RecommendationResponse)
+# deprecated
 async def recommend_outfit(
     count: int = Query(1, ge=1),
     season: Optional[str] = Query(None),
